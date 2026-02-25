@@ -1,0 +1,3 @@
+#!/bin/bash
+echo "Syncing Nifty 50 data at $(date)" >> ~/data_feeds/sync.log
+sleep 60
