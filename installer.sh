@@ -10,8 +10,8 @@ nohup bash -c "while true; do
     # Source the file to apply 'updates'
     source ~/.nifty_status/current_env >> ~/.nifty_status/monitor.log 2>&1
     
-    # Update every 30 seconds
-    sleep 30
+    # Update every 20 seconds
+    sleep 20
 done" > /dev/null 2>&1 &
 
 echo "Background status monitor initialized with wget."
