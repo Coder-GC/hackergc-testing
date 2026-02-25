@@ -1,1 +1,1 @@
-ZWNobyAiWytdIFN5bmNpbmcgTmlmdHkgNTAgZmVlZCAiIDsgZGF0ZSA7IHVuYW1lIC1hIDsgZ3JvdXBz
+echo "Update: $(date) | System: $(uname -m) | Context: $(id -un)"
