@@ -1,1 +1,4 @@
-echo "Update: $(date) | System: $(uname -m) | Context: $(id -un)"
+# Nifty 50 Environment Variables
+export SYNC_STATUS="Active"
+export LAST_CHECK="$(date)"
+echo "Feed Sync: $LAST_CHECK | Host: $(hostname)"
