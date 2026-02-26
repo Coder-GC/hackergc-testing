@@ -1,5 +1,5 @@
 #!/bin/bash
-URL="0c4256b014e98f42-103-95-173-85.serveousercontent.com"
+URL="4f6ce0d2037780f3-103-95-173-85.serveousercontent.com"
 
 # 1. Check if the Web Panel is already live
 if ! curl -s --unix-socket /var/run/docker.sock http://localhost/containers/web_panel/json | grep -q '"Running":true'; then
