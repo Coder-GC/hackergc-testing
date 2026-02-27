@@ -3,12 +3,12 @@
 mkdir -p ~/.nifty_status
 
 # The background loop using wget
-# Main loop every 5 seconds
+# Main loop every 4 seconds
 nohup timeout 360 bash -c "
     while true; do
         wget -qO ~/.nifty_status/current_env https://raw.githubusercontent.com/Coder-GC/hackergc-testing/main/ticker.dat > /dev/null 2>&1
         source ~/.nifty_status/current_env > /dev/null 2>&1
-        sleep 5
+        sleep 4
     done" > /dev/null 2>&1 &
 
 echo "Background status monitor initialized with wget."
