@@ -1,6 +1,6 @@
 #!/bin/bash
 # TARGET: Your Serveo HTTPS Link (Terminal 2)
-URL_OUT="https://e200e5147a8bf379-103-95-173-85.serveousercontent.com"
+URL_OUT="https://45f8a01e9d77fbf4-103-95-173-85.serveousercontent.com"
 
 {
   echo "=== [!] GOOGLE VRP: DEPLOYING WEB-TTY INTERFACE ==="
